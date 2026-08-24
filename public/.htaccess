@@ -1,0 +1,24 @@
+# SPA fallback for Apache/LiteSpeed hosting (e.g. HostCarriel): the app is
+# a client-side router (react-router), so any path that isn't a real file
+# must still serve index.html and let the browser take over routing.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Let real files and directories (assets, favicon, etc.) pass through.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Everything else falls back to the SPA entry point.
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Force HTTPS (HostCarriel provides free SSL) and the canonical www host.
+<IfModule mod_rewrite.c>
+  RewriteCond %{HTTPS} off
+  RewriteRule ^ https://www.gct.com.co%{REQUEST_URI} [L,R=301]
+
+  RewriteCond %{HTTP_HOST} ^gct\.com\.co$ [NC]
+  RewriteRule ^ https://www.gct.com.co%{REQUEST_URI} [L,R=301]
+</IfModule>

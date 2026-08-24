@@ -1,0 +1,60 @@
+name: Deploy GCT por SFTP
+
+# Se ejecuta automáticamente cada vez que hay un push a "main".
+# También se puede lanzar manualmente desde la pestaña "Actions" en GitHub.
+#
+# Nota: se usa SFTP (puerto 22) en vez de FTP normal porque StackCP (el
+# hosting de HostCarriel) corta la conexión de datos FTP cuando viene desde
+# IPs de datacenters como las de GitHub Actions. SFTP usa un solo canal y
+# no tiene ese problema.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  sftp-deploy:
+    name: Compilar y subir el sitio
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar para producción
+        run: npm run build
+        env:
+          # URL pública del backend del asistente de IA (Railway) — no es
+          # secreta, es la misma URL con la que cualquiera puede hablarle.
+          VITE_CHAT_API_URL: https://api.gct.com.co/api/chat
+
+      - name: Crear carpetas nuevas en el servidor (SFTP-Deploy-Action no las crea en modo sftp_only)
+        run: |
+          which sshpass > /dev/null 2>&1 || sudo apt-get install -y sshpass
+          sshpass -p "${{ secrets.FTP_PASSWORD }}" sftp -oStrictHostKeyChecking=no -oBatchMode=no -P 22 "${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }}" << 'EOF'
+          -mkdir /public_html/assets
+          bye
+          EOF
+
+      - name: Subir por SFTP a public_html
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 22
+          local_path: "./dist/*"
+          remote_path: "/public_html/"
+          sftp_only: true

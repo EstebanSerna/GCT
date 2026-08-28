@@ -23,6 +23,13 @@ body {
   outline-offset: 2px;
 }
 
+/* Los campos de login/registro ya tienen su propio brillo suave al
+   enfocar (ver CampoAuth.tsx) — sin este override, el outline duro de
+   arriba se dibuja encima y se ve como una línea fucsia rectangular. */
+.campo-auth-input:focus-visible {
+  outline: none;
+}
+
 /* Los campos oscuros de login/registro (.campo-auth-input): cuando el
    navegador autocompleta el valor, Chrome/Safari fuerzan un fondo claro
    propio que rompe el fondo oscuro homogéneo del formulario. Esto lo

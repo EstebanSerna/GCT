@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Receipt,
   Landmark,
@@ -83,6 +83,28 @@ export default function Calendario() {
     return Array.from(grupos.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [visibles]);
 
+  const claveMesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+  const seccionesRef = useRef(new Map<string, HTMLDivElement>());
+  const yaEnfoco = useRef(false);
+
+  // Al abrir el calendario, lo posiciona directamente en el mes de hoy en
+  // vez de arrancar en enero — solo una vez, para no mover la página bajo
+  // los pies de quien esté usando los filtros.
+  useLayoutEffect(() => {
+    if (yaEnfoco.current || porMes.length === 0) return;
+    // El mes actual si tiene eventos visibles; si no, el próximo mes con
+    // eventos; si ya pasó todo el año, el último disponible.
+    const objetivo =
+      porMes.find(([clave]) => clave === claveMesActual)?.[0] ??
+      porMes.find(([clave]) => clave >= claveMesActual)?.[0] ??
+      porMes[porMes.length - 1][0];
+    const nodo = seccionesRef.current.get(objetivo);
+    if (nodo) {
+      nodo.scrollIntoView({ block: "start", behavior: "auto" });
+      yaEnfoco.current = true;
+    }
+  }, [porMes, claveMesActual]);
+
   return (
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-10">
       <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-magenta-deep">
@@ -116,14 +138,31 @@ export default function Calendario() {
         <div className="flex flex-col gap-10">
           {porMes.map(([clave, eventos]) => {
             const [y, m] = clave.split("-").map(Number);
+            const esMesActual = clave === claveMesActual;
             return (
-              <div key={clave} className="relative">
+              <div
+                key={clave}
+                ref={(nodo) => {
+                  if (nodo) seccionesRef.current.set(clave, nodo);
+                  else seccionesRef.current.delete(clave);
+                }}
+                className="relative scroll-mt-4"
+              >
                 <div className="sticky top-0 z-10 -mx-1 mb-4 flex items-center gap-3 bg-paper/95 px-1 py-1.5 backdrop-blur">
-                  <span className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink font-display text-[11px] font-semibold text-white sm:h-10 sm:w-10">
+                  <span
+                    className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-[11px] font-semibold text-white sm:h-10 sm:w-10 ${
+                      esMesActual ? "bg-magenta" : "bg-ink"
+                    }`}
+                  >
                     {String(m).padStart(2, "0")}
                   </span>
-                  <h2 className="font-display text-lg font-semibold text-ink">
+                  <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
                     {MESES[m - 1]} <span className="text-ash">{y}</span>
+                    {esMesActual && (
+                      <span className="rounded-full bg-magenta/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-magenta-deep">
+                        Este mes
+                      </span>
+                    )}
                   </h2>
                 </div>
 

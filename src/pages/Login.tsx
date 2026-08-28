@@ -35,7 +35,7 @@ export default function Login() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink px-6 py-16">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink px-6 py-16 [color-scheme:dark]">
       <div
         className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-magenta opacity-20 blur-[110px]"
         aria-hidden

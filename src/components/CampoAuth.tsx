@@ -23,7 +23,7 @@ export function CampoAuth({
         <span className="shrink-0 text-paper/40">{icono}</span>
         <input
           {...inputProps}
-          className={`w-full bg-transparent text-sm text-white outline-none placeholder:text-paper/30 ${className ?? ""}`}
+          className={`campo-auth-input w-full bg-transparent text-sm text-white outline-none placeholder:text-paper/30 ${className ?? ""}`}
         />
         {extra}
       </span>

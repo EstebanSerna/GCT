@@ -22,3 +22,20 @@ body {
   outline: 2px solid #E5136F;
   outline-offset: 2px;
 }
+
+/* Los campos oscuros de login/registro (.campo-auth-input): cuando el
+   navegador autocompleta el valor, Chrome/Safari fuerzan un fondo claro
+   propio que rompe el fondo oscuro homogéneo del formulario. Esto lo
+   anula manteniendo nuestro color e insertando el fondo oscuro por
+   debajo del autorelleno nativo. La ventana de sugerencias del propio
+   navegador (usuario/contraseña guardados) es interfaz nativa del
+   navegador — ningún sitio puede restylearla. */
+.campo-auth-input:-webkit-autofill,
+.campo-auth-input:-webkit-autofill:hover,
+.campo-auth-input:-webkit-autofill:focus,
+.campo-auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  transition: background-color 9999s ease-in-out 0s;
+  box-shadow: 0 0 0px 1000px #2b2929 inset; /* ink-soft, ver tailwind.config.js */
+}

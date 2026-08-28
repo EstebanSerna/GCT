@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Receipt,
   Landmark,
@@ -9,6 +9,8 @@ import {
   CalendarClock,
   AlertCircle,
   ShieldAlert,
+  ChevronDown,
+  History,
 } from "lucide-react";
 import { RingMark } from "../components/Stamp";
 import {
@@ -84,26 +86,12 @@ export default function Calendario() {
   }, [visibles]);
 
   const claveMesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
-  const seccionesRef = useRef(new Map<string, HTMLDivElement>());
-  const yaEnfoco = useRef(false);
 
-  // Al abrir el calendario, lo posiciona directamente en el mes de hoy en
-  // vez de arrancar en enero — solo una vez, para no mover la página bajo
-  // los pies de quien esté usando los filtros.
-  useLayoutEffect(() => {
-    if (yaEnfoco.current || porMes.length === 0) return;
-    // El mes actual si tiene eventos visibles; si no, el próximo mes con
-    // eventos; si ya pasó todo el año, el último disponible.
-    const objetivo =
-      porMes.find(([clave]) => clave === claveMesActual)?.[0] ??
-      porMes.find(([clave]) => clave >= claveMesActual)?.[0] ??
-      porMes[porMes.length - 1][0];
-    const nodo = seccionesRef.current.get(objetivo);
-    if (nodo) {
-      nodo.scrollIntoView({ block: "start", behavior: "auto" });
-      yaEnfoco.current = true;
-    }
-  }, [porMes, claveMesActual]);
+  // El mes de hoy queda primero en la página (sin scroll de por medio) —
+  // los meses ya pasados se guardan aparte, colapsados más abajo.
+  const mesesDesdeHoy = useMemo(() => porMes.filter(([clave]) => clave >= claveMesActual), [porMes, claveMesActual]);
+  const mesesAnteriores = useMemo(() => porMes.filter(([clave]) => clave < claveMesActual), [porMes, claveMesActual]);
+  const [verAnteriores, setVerAnteriores] = useState(false);
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-10">
@@ -131,57 +119,49 @@ export default function Calendario() {
         ))}
       </div>
 
-      {/* Línea de tiempo por mes */}
+      {/* Línea de tiempo — desde el mes actual en adelante, sin scroll */}
       <div className="relative mt-10">
         <div className="pointer-events-none absolute bottom-4 left-[15px] top-4 w-px bg-ash-light/30 sm:left-[19px]" />
 
         <div className="flex flex-col gap-10">
-          {porMes.map(([clave, eventos]) => {
-            const [y, m] = clave.split("-").map(Number);
-            const esMesActual = clave === claveMesActual;
-            return (
-              <div
-                key={clave}
-                ref={(nodo) => {
-                  if (nodo) seccionesRef.current.set(clave, nodo);
-                  else seccionesRef.current.delete(clave);
-                }}
-                className="relative scroll-mt-4"
-              >
-                <div className="sticky top-0 z-10 -mx-1 mb-4 flex items-center gap-3 bg-paper/95 px-1 py-1.5 backdrop-blur">
-                  <span
-                    className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-[11px] font-semibold text-white sm:h-10 sm:w-10 ${
-                      esMesActual ? "bg-magenta" : "bg-ink"
-                    }`}
-                  >
-                    {String(m).padStart(2, "0")}
-                  </span>
-                  <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
-                    {MESES[m - 1]} <span className="text-ash">{y}</span>
-                    {esMesActual && (
-                      <span className="rounded-full bg-magenta/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-magenta-deep">
-                        Este mes
-                      </span>
-                    )}
-                  </h2>
-                </div>
+          {mesesDesdeHoy.map(([clave, eventos]) => (
+            <SeccionMes key={clave} clave={clave} eventos={eventos} hoy={hoy} esMesActual={clave === claveMesActual} />
+          ))}
 
-                <div className="flex flex-col gap-3 pl-11 sm:pl-14">
-                  {eventos.map((ev) => (
-                    <EventoCard key={ev.id} evento={ev} hoy={hoy} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {porMes.length === 0 && (
+          {mesesDesdeHoy.length === 0 && (
             <p className="rounded-lg border border-dashed border-ash-light px-5 py-8 text-center text-sm text-ash">
-              No hay vencimientos en esta categoría.
+              No hay vencimientos próximos en esta categoría.
             </p>
           )}
         </div>
       </div>
+
+      {/* Meses ya pasados — colapsados, para no estorbar */}
+      {mesesAnteriores.length > 0 && (
+        <div className="mt-10">
+          <button
+            onClick={() => setVerAnteriores((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 rounded-xl border border-ash-light/25 bg-white/40 px-4 py-3 text-left transition-colors hover:bg-white/60"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-ash">
+              <History size={15} />
+              Meses anteriores ({mesesAnteriores.reduce((n, [, evs]) => n + evs.length, 0)} vencimientos ya pasados)
+            </span>
+            <ChevronDown size={16} className={`text-ash transition-transform ${verAnteriores ? "rotate-180" : ""}`} />
+          </button>
+
+          {verAnteriores && (
+            <div className="relative mt-6">
+              <div className="pointer-events-none absolute bottom-4 left-[15px] top-4 w-px bg-ash-light/30 sm:left-[19px]" />
+              <div className="flex flex-col gap-10">
+                {mesesAnteriores.map(([clave, eventos]) => (
+                  <SeccionMes key={clave} clave={clave} eventos={eventos} hoy={hoy} esMesActual={false} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-12 flex items-start gap-2.5 rounded-xl border border-folio-amber/25 bg-folio-amber/5 px-4 py-3.5 text-xs leading-relaxed text-ash">
         <ShieldAlert size={16} className="mt-0.5 shrink-0 text-folio-amber" />
@@ -236,6 +216,48 @@ function ProximoVencimiento({ evento, hoy }: { evento: EventoTributario; hoy: Da
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SeccionMes({
+  clave,
+  eventos,
+  hoy,
+  esMesActual,
+}: {
+  clave: string;
+  eventos: EventoTributario[];
+  hoy: Date;
+  esMesActual: boolean;
+}) {
+  const [y, m] = clave.split("-").map(Number);
+
+  return (
+    <div className="relative">
+      <div className="sticky top-0 z-10 -mx-1 mb-4 flex items-center gap-3 bg-paper/95 px-1 py-1.5 backdrop-blur">
+        <span
+          className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-[11px] font-semibold text-white sm:h-10 sm:w-10 ${
+            esMesActual ? "bg-magenta" : "bg-ink"
+          }`}
+        >
+          {String(m).padStart(2, "0")}
+        </span>
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink">
+          {MESES[m - 1]} <span className="text-ash">{y}</span>
+          {esMesActual && (
+            <span className="rounded-full bg-magenta/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-magenta-deep">
+              Este mes
+            </span>
+          )}
+        </h2>
+      </div>
+
+      <div className="flex flex-col gap-3 pl-11 sm:pl-14">
+        {eventos.map((ev) => (
+          <EventoCard key={ev.id} evento={ev} hoy={hoy} />
+        ))}
       </div>
     </div>
   );

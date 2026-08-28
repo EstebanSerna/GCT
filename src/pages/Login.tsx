@@ -6,6 +6,7 @@ import { useApp } from "../context/AppContext";
 import { rutaInicioPara } from "../lib/rutas";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "../components/Stamp";
+import { CampoAuth } from "../components/CampoAuth";
 
 export default function Login() {
   const { iniciarSesion } = useApp();
@@ -66,36 +67,28 @@ export default function Login() {
 
         <form
           onSubmit={onSubmit}
-          className="rounded-2xl border border-paper/10 bg-ink-soft/80 p-6 shadow-2xl shadow-black/30 backdrop-blur"
+          className="flex flex-col gap-4 rounded-[2rem] border border-paper/10 bg-ink-soft/80 p-6 shadow-2xl shadow-black/30 backdrop-blur"
         >
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-paper/70">Correo electrónico</span>
-            <span className="flex items-center gap-2 rounded-lg border border-paper/15 bg-ink px-3.5 py-2.5 focus-within:border-magenta">
-              <Mail size={16} className="shrink-0 text-paper/35" />
-              <input
-                required
-                autoFocus
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tucorreo@ejemplo.com"
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-paper/30"
-              />
-            </span>
-          </label>
+          <CampoAuth
+            icono={<Mail size={16} />}
+            label="Correo electrónico"
+            required
+            autoFocus
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="tucorreo@ejemplo.com"
+          />
 
-          <label className="mt-4 flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-paper/70">Contraseña</span>
-            <span className="flex items-center gap-2 rounded-lg border border-paper/15 bg-ink px-3.5 py-2.5 focus-within:border-magenta">
-              <Lock size={16} className="shrink-0 text-paper/35" />
-              <input
-                required
-                type={verPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-paper/30"
-              />
+          <CampoAuth
+            icono={<Lock size={16} />}
+            label="Contraseña"
+            required
+            type={verPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            extra={
               <button
                 type="button"
                 onClick={() => setVerPassword((v) => !v)}
@@ -104,10 +97,10 @@ export default function Login() {
               >
                 {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-            </span>
-          </label>
+            }
+          />
 
-          <div className="mt-4 flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between text-xs">
             <label className="flex items-center gap-1.5 text-paper/45">
               <input type="checkbox" className="h-3.5 w-3.5 rounded border-paper/30 bg-ink accent-magenta" />
               Recordarme
@@ -122,7 +115,7 @@ export default function Login() {
           </div>
 
           {error && (
-            <p className="mt-4 rounded-lg border border-folio-red/30 bg-folio-red/10 px-3 py-2 text-xs text-folio-red">
+            <p className="rounded-full border border-folio-red/30 bg-folio-red/10 px-4 py-2.5 text-xs text-folio-red">
               {error}
             </p>
           )}
@@ -130,7 +123,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={cargando}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-magenta px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-magenta-deep disabled:opacity-60"
+            className="mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-magenta to-magenta-deep px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-magenta/25 transition-transform hover:scale-[1.01] disabled:opacity-60 disabled:hover:scale-100"
           >
             {cargando ? (
               <>

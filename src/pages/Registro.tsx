@@ -1,11 +1,12 @@
 import { useState } from "react";
-import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, IdCard, Phone, Mail, Lock, Camera, ArrowRight, Check, X, CheckCircle2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { api, ApiError } from "../lib/api";
 import { archivoAFotoBase64 } from "../lib/foto";
 import { rutaInicioPara } from "../lib/rutas";
+import { CampoAuth } from "../components/CampoAuth";
 import logo from "../assets/logo-mark.png";
 
 interface Requisito {
@@ -100,7 +101,7 @@ export default function Registro() {
           </p>
           <Link
             to="/portal"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-magenta px-5 py-2.5 text-sm font-semibold text-white hover:bg-magenta-deep"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-magenta to-magenta-deep px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-magenta/25 transition-transform hover:scale-[1.02]"
           >
             Volver al portal
           </Link>
@@ -133,7 +134,7 @@ export default function Registro() {
 
         <form
           onSubmit={onSubmit}
-          className="flex flex-col gap-4 rounded-2xl border border-paper/10 bg-ink-soft/80 p-6 shadow-2xl shadow-black/30 backdrop-blur"
+          className="flex flex-col gap-4 rounded-[2rem] border border-paper/10 bg-ink-soft/80 p-6 shadow-2xl shadow-black/30 backdrop-blur"
         >
           <div className="flex flex-col items-center gap-2">
             <label htmlFor="foto" className="group relative flex h-20 w-20 cursor-pointer items-center justify-center rounded-full border-2 border-dashed border-paper/25 bg-ink text-paper/40 hover:border-magenta hover:text-magenta">
@@ -147,26 +148,53 @@ export default function Registro() {
             <span className="text-[11px] text-paper/40">Foto de perfil (opcional)</span>
           </div>
 
-          <Campo icono={<User size={16} />} label="Nombre completo">
-            <input required value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" className="campo-input" />
-          </Campo>
+          <CampoAuth
+            icono={<User size={16} />}
+            label="Nombre completo"
+            required
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Tu nombre"
+          />
 
           <div className="grid grid-cols-2 gap-3">
-            <Campo icono={<IdCard size={16} />} label="Documento">
-              <input required value={documento} onChange={(e) => setDocumento(e.target.value)} placeholder="1020304050" className="campo-input" />
-            </Campo>
-            <Campo icono={<Phone size={16} />} label="Celular">
-              <input required value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="3001234567" className="campo-input" />
-            </Campo>
+            <CampoAuth
+              icono={<IdCard size={16} />}
+              label="Documento"
+              required
+              value={documento}
+              onChange={(e) => setDocumento(e.target.value)}
+              placeholder="1020304050"
+            />
+            <CampoAuth
+              icono={<Phone size={16} />}
+              label="Celular"
+              required
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              placeholder="3001234567"
+            />
           </div>
 
-          <Campo icono={<Mail size={16} />} label="Correo electrónico">
-            <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" className="campo-input" />
-          </Campo>
+          <CampoAuth
+            icono={<Mail size={16} />}
+            label="Correo electrónico"
+            required
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="tucorreo@ejemplo.com"
+          />
 
-          <Campo icono={<Lock size={16} />} label="Contraseña">
-            <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="campo-input" />
-          </Campo>
+          <CampoAuth
+            icono={<Lock size={16} />}
+            label="Contraseña"
+            required
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+          />
 
           {password.length > 0 && (
             <ul className="-mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -181,35 +209,29 @@ export default function Registro() {
             </ul>
           )}
 
-          <Campo icono={<Lock size={16} />} label="Confirmar contraseña">
-            <input required type="password" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} placeholder="••••••••" className="campo-input" />
-          </Campo>
+          <CampoAuth
+            icono={<Lock size={16} />}
+            label="Confirmar contraseña"
+            required
+            type="password"
+            value={confirmar}
+            onChange={(e) => setConfirmar(e.target.value)}
+            placeholder="••••••••"
+          />
 
           {error && (
-            <p className="rounded-lg border border-folio-red/30 bg-folio-red/10 px-3 py-2 text-xs text-folio-red">{error}</p>
+            <p className="rounded-full border border-folio-red/30 bg-folio-red/10 px-4 py-2.5 text-xs text-folio-red">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={cargando}
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg bg-magenta px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-magenta-deep disabled:opacity-60"
+            className="mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-magenta to-magenta-deep px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-magenta/25 transition-transform hover:scale-[1.01] disabled:opacity-60 disabled:hover:scale-100"
           >
             {cargando ? "Creando cuenta..." : (<>Registrarme <ArrowRight size={16} /></>)}
           </button>
         </form>
       </div>
     </div>
-  );
-}
-
-function Campo({ icono, label, children }: { icono: ReactNode; label: string; children: ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5 text-sm">
-      <span className="font-medium text-paper/70">{label}</span>
-      <span className="flex items-center gap-2 rounded-lg border border-paper/15 bg-ink px-3.5 py-2.5 focus-within:border-magenta [&_.campo-input]:w-full [&_.campo-input]:bg-transparent [&_.campo-input]:text-sm [&_.campo-input]:text-white [&_.campo-input]:outline-none [&_.campo-input]:placeholder:text-paper/30">
-        <span className="shrink-0 text-paper/35">{icono}</span>
-        {children}
-      </span>
-    </label>
   );
 }

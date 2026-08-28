@@ -5,26 +5,31 @@ import type { Usuario, Cliente, Tarea } from "../data/seed";
 import { api, getToken, type ApiEmpleado } from "../lib/api";
 
 // Convierte el empleado que devuelve el backend real al formato "Usuario"
-// que usa el resto de la app. El "id" es el mismo "usuario" con el que
-// inició sesión — así las tareas/clientes de la demo (asignados por ese
-// mismo valor en src/data/seed.ts) siguen encontrándose sin cambios. Un
-// empleado nuevo, sin tareas de demo asociadas, simplemente no verá nada
-// en esas pantallas — no rompe nada.
+// que usa el resto de la app. El "id" es el mismo correo con el que inició
+// sesión — así las tareas/clientes de la demo (asignados por ese mismo
+// valor en src/data/seed.ts) siguen encontrándose sin cambios. Un empleado
+// nuevo, sin tareas de demo asociadas, simplemente no verá nada en esas
+// pantallas — no rompe nada. `emp.rol` solo llega null para cuentas
+// pendientes de aprobar, que el backend nunca deja iniciar sesión — por
+// eso el cast es seguro acá.
 function aUsuario(emp: ApiEmpleado): Usuario {
   return {
-    id: emp.usuario,
+    id: emp.email,
     dbId: emp.id,
     nombre: emp.nombre,
-    rol: emp.rol,
+    rol: emp.rol as NonNullable<ApiEmpleado["rol"]>,
     iniciales: emp.iniciales,
-    usuario: emp.usuario,
+    usuario: emp.email,
+    fotoBase64: emp.fotoBase64,
   };
 }
 
 interface AppState {
   usuarioActual: Usuario | null;
   cargandoSesion: boolean;
-  iniciarSesion: (usuario: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  iniciarSesion: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Para cuando el registro deja la sesión ya iniciada (solo el correo del super admin). */
+  iniciarSesionDesdeRegistro: (employee: ApiEmpleado) => void;
   cerrarSesion: () => void;
   clientes: Cliente[];
   tareas: Tarea[];
@@ -57,14 +62,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .finally(() => setCargandoSesion(false));
   }, []);
 
-  async function iniciarSesion(usuario: string, password: string) {
+  async function iniciarSesion(email: string, password: string) {
     try {
-      const employee = await api.login(usuario, password);
+      const employee = await api.login(email, password);
       setUsuarioActual(aUsuario(employee));
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : "No se pudo iniciar sesión." };
     }
+  }
+
+  function iniciarSesionDesdeRegistro(employee: ApiEmpleado) {
+    setUsuarioActual(aUsuario(employee));
   }
 
   function cerrarSesion() {
@@ -97,6 +106,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         usuarioActual,
         cargandoSesion,
         iniciarSesion,
+        iniciarSesionDesdeRegistro,
         cerrarSesion,
         clientes,
         tareas,

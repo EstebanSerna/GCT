@@ -6,15 +6,18 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const TOKEN_KEY = "gct_token";
 
-export type Rol = "admin" | "contador" | "auxiliar";
+export type Rol = "super_admin" | "gerente" | "contador" | "auxiliar";
 
 export interface ApiEmpleado {
   id: number;
   nombre: string;
-  usuario: string;
-  rol: Rol;
+  email: string;
+  rol: Rol | null;
   iniciales: string;
-  activo?: boolean;
+  documento: string | null;
+  telefono: string | null;
+  fotoBase64: string | null;
+  activo: boolean;
 }
 
 export interface RegistroAsistencia {
@@ -58,11 +61,28 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+export interface DatosRegistro {
+  nombre: string;
+  documento: string;
+  telefono: string;
+  email: string;
+  password: string;
+  fotoBase64?: string | null;
+}
+
 export const api = {
-  async login(usuario: string, password: string) {
+  async registro(datos: DatosRegistro) {
+    const data = await request<
+      { pendiente: true; mensaje: string } | { pendiente: false; token: string; employee: ApiEmpleado }
+    >("/api/auth/registro", { method: "POST", body: JSON.stringify(datos) });
+    if (!data.pendiente) setToken(data.token);
+    return data;
+  },
+
+  async login(email: string, password: string) {
     const data = await request<{ token: string; employee: ApiEmpleado }>("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ usuario, password }),
+      body: JSON.stringify({ email, password }),
     });
     setToken(data.token);
     return data.employee;
@@ -95,22 +115,32 @@ export const api = {
     return request<{ records: RegistroAsistenciaAdmin[] }>(`/api/attendance?limit=${limit}`);
   },
 
+  /** Super admin: todos, incluidos pendientes de aprobar. */
   empleados() {
     return request<{ employees: ApiEmpleado[] }>("/api/employees");
   },
 
-  crearEmpleado(input: { nombre: string; usuario: string; password: string; rol: Rol }) {
+  /** Gerente: solo el equipo activo. */
+  equipo() {
+    return request<{ employees: ApiEmpleado[] }>("/api/employees/equipo");
+  },
+
+  crearEmpleado(input: { nombre: string; email: string; password: string; rol: Exclude<Rol, "super_admin">; documento?: string; telefono?: string }) {
     return request<{ employee: ApiEmpleado }>("/api/employees", {
       method: "POST",
       body: JSON.stringify(input),
     });
   },
 
-  actualizarEmpleado(id: number, input: { activo?: boolean; rol?: Rol; password?: string }) {
+  actualizarEmpleado(id: number, input: { activo?: boolean; rol?: Exclude<Rol, "super_admin">; password?: string }) {
     return request<{ employee: ApiEmpleado }>(`/api/employees/${id}`, {
       method: "PATCH",
       body: JSON.stringify(input),
     });
+  },
+
+  eliminarEmpleado(id: number) {
+    return request<{ ok: true }>(`/api/employees/${id}`, { method: "DELETE" });
   },
 };
 

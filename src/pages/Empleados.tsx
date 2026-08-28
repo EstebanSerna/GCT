@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { UserPlus, ShieldCheck, ShieldOff, KeyRound, Download, AlertTriangle } from "lucide-react";
+import { UserPlus, ShieldCheck, ShieldOff, KeyRound, Download, AlertTriangle, Trash2, CheckCircle2 } from "lucide-react";
 import { api, ApiError, type ApiEmpleado, type Rol, type RegistroAsistenciaAdmin } from "../lib/api";
 import { agruparPorDiaYEmpleado, descargarCsv } from "../lib/reporte";
 
+type RolAsignable = Exclude<Rol, "super_admin">;
+
 const ROL_LABEL: Record<Rol, string> = {
-  admin: "Gerente",
+  super_admin: "Super admin",
+  gerente: "Gerente",
   contador: "Contador/a",
   auxiliar: "Auxiliar contable",
 };
 
 function NuevoEmpleadoForm({ onCreado }: { onCreado: (e: ApiEmpleado) => void }) {
   const [nombre, setNombre] = useState("");
-  const [usuario, setUsuario] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rol, setRol] = useState<Rol>("contador");
+  const [rol, setRol] = useState<RolAsignable>("contador");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
@@ -25,10 +28,10 @@ function NuevoEmpleadoForm({ onCreado }: { onCreado: (e: ApiEmpleado) => void })
     setOk(false);
     setEnviando(true);
     try {
-      const { employee } = await api.crearEmpleado({ nombre, usuario, password, rol });
+      const { employee } = await api.crearEmpleado({ nombre, email, password, rol });
       onCreado(employee);
       setNombre("");
-      setUsuario("");
+      setEmail("");
       setPassword("");
       setRol("contador");
       setOk(true);
@@ -52,12 +55,13 @@ function NuevoEmpleadoForm({ onCreado }: { onCreado: (e: ApiEmpleado) => void })
         />
       </label>
       <label className="flex flex-col gap-1 text-xs">
-        <span className="font-medium text-ink">Usuario de acceso</span>
+        <span className="font-medium text-ink">Correo electrónico</span>
         <input
           required
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          placeholder="diana.restrepo"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="diana@gct.com.co"
           className="rounded-lg border border-ash-light/50 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-magenta"
         />
       </label>
@@ -69,7 +73,7 @@ function NuevoEmpleadoForm({ onCreado }: { onCreado: (e: ApiEmpleado) => void })
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="mínimo 8 caracteres"
+          placeholder="Mayús., minús., número y símbolo"
           className="rounded-lg border border-ash-light/50 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-magenta"
         />
       </label>
@@ -77,12 +81,12 @@ function NuevoEmpleadoForm({ onCreado }: { onCreado: (e: ApiEmpleado) => void })
         <span className="font-medium text-ink">Rol</span>
         <select
           value={rol}
-          onChange={(e) => setRol(e.target.value as Rol)}
+          onChange={(e) => setRol(e.target.value as RolAsignable)}
           className="rounded-lg border border-ash-light/50 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-magenta"
         >
           <option value="contador">Contador/a</option>
           <option value="auxiliar">Auxiliar contable</option>
-          <option value="admin">Gerente</option>
+          <option value="gerente">Gerente</option>
         </select>
       </label>
 
@@ -100,7 +104,84 @@ function NuevoEmpleadoForm({ onCreado }: { onCreado: (e: ApiEmpleado) => void })
   );
 }
 
-function FilaEmpleado({ emp, onCambiado }: { emp: ApiEmpleado; onCambiado: (e: ApiEmpleado) => void }) {
+function FilaPendiente({ emp, onResuelto }: { emp: ApiEmpleado; onResuelto: (e: ApiEmpleado) => void }) {
+  const [rol, setRol] = useState<RolAsignable>("contador");
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function aprobar() {
+    setOcupado(true);
+    setError(null);
+    try {
+      const { employee } = await api.actualizarEmpleado(emp.id, { activo: true, rol });
+      onResuelto(employee);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo aprobar.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function rechazar() {
+    if (!window.confirm(`¿Eliminar el registro de ${emp.nombre}? Esta acción no se puede deshacer.`)) return;
+    setOcupado(true);
+    try {
+      await api.eliminarEmpleado(emp.id);
+      onResuelto({ ...emp, activo: false });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo eliminar.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-folio-amber/30 bg-folio-amber/5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
+        {emp.fotoBase64 ? (
+          <img src={emp.fotoBase64} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-folio-amber/20 text-[11px] font-semibold text-folio-amber">
+            {emp.iniciales}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-ink">{emp.nombre}</p>
+          <p className="truncate text-xs text-ash">{emp.email} · {emp.documento} · {emp.telefono}</p>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <select
+          value={rol}
+          onChange={(e) => setRol(e.target.value as RolAsignable)}
+          className="rounded-md border border-ash-light/50 bg-white px-2 py-1.5 text-xs text-ink outline-none focus:border-magenta"
+        >
+          <option value="contador">Contador/a</option>
+          <option value="auxiliar">Auxiliar</option>
+          <option value="gerente">Gerente</option>
+        </select>
+        <button
+          onClick={aprobar}
+          disabled={ocupado}
+          className="flex items-center gap-1 rounded-md bg-folio-green px-3 py-1.5 text-xs font-medium text-white hover:bg-folio-green/90 disabled:opacity-50"
+        >
+          <CheckCircle2 size={13} /> Aprobar
+        </button>
+        <button
+          onClick={rechazar}
+          disabled={ocupado}
+          className="rounded-md p-1.5 text-ash hover:bg-folio-red/10 hover:text-folio-red disabled:opacity-50"
+          title="Eliminar solicitud"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+      {error && <p className="text-xs text-folio-red sm:col-span-2">{error}</p>}
+    </div>
+  );
+}
+
+function FilaEmpleado({ emp, onCambiado, onEliminado }: { emp: ApiEmpleado; onCambiado: (e: ApiEmpleado) => void; onEliminado: (id: number) => void }) {
   const [ocupado, setOcupado] = useState(false);
 
   async function toggleActivo() {
@@ -113,27 +194,74 @@ function FilaEmpleado({ emp, onCambiado }: { emp: ApiEmpleado; onCambiado: (e: A
     }
   }
 
-  async function resetPassword() {
-    const nueva = window.prompt(`Nueva contraseña para ${emp.nombre} (mínimo 8 caracteres):`);
-    if (!nueva) return;
+  async function cambiarRol(rol: RolAsignable) {
     setOcupado(true);
     try {
-      const { employee } = await api.actualizarEmpleado(emp.id, { password: nueva });
+      const { employee } = await api.actualizarEmpleado(emp.id, { rol });
       onCambiado(employee);
     } finally {
       setOcupado(false);
     }
   }
 
+  async function resetPassword() {
+    const nueva = window.prompt(
+      `Nueva contraseña para ${emp.nombre}\n(mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo):`
+    );
+    if (!nueva) return;
+    setOcupado(true);
+    try {
+      const { employee } = await api.actualizarEmpleado(emp.id, { password: nueva });
+      onCambiado(employee);
+    } catch (err) {
+      window.alert(err instanceof ApiError ? err.message : "No se pudo cambiar la contraseña.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function eliminar() {
+    if (!window.confirm(`¿Eliminar la cuenta de ${emp.nombre} definitivamente? Esta acción no se puede deshacer.`)) return;
+    setOcupado(true);
+    try {
+      await api.eliminarEmpleado(emp.id);
+      onEliminado(emp.id);
+    } catch (err) {
+      window.alert(err instanceof ApiError ? err.message : "No se pudo eliminar.");
+      setOcupado(false);
+    }
+  }
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-3">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-ink">{emp.nombre}</p>
-        <p className="truncate text-xs text-ash">
-          {emp.usuario} · {ROL_LABEL[emp.rol]} {!emp.activo && "· inactivo"}
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        {emp.fotoBase64 ? (
+          <img src={emp.fotoBase64} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/10 text-[11px] font-semibold text-ink">
+            {emp.iniciales}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-ink">{emp.nombre}</p>
+          <p className="truncate text-xs text-ash">
+            {emp.email} {!emp.activo && "· inactivo"}
+          </p>
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
+        {emp.rol !== "super_admin" && (
+          <select
+            value={emp.rol ?? "contador"}
+            onChange={(e) => cambiarRol(e.target.value as RolAsignable)}
+            disabled={ocupado}
+            className="rounded-md border border-ash-light/50 bg-white px-2 py-1.5 text-xs text-ink outline-none focus:border-magenta disabled:opacity-50"
+          >
+            <option value="contador">Contador/a</option>
+            <option value="auxiliar">Auxiliar</option>
+            <option value="gerente">Gerente</option>
+          </select>
+        )}
         <button
           onClick={resetPassword}
           disabled={ocupado}
@@ -152,6 +280,16 @@ function FilaEmpleado({ emp, onCambiado }: { emp: ApiEmpleado; onCambiado: (e: A
         >
           {emp.activo ? <ShieldCheck size={15} /> : <ShieldOff size={15} />}
         </button>
+        {emp.rol !== "super_admin" && (
+          <button
+            onClick={eliminar}
+            disabled={ocupado}
+            className="rounded-md p-2 text-ash hover:bg-folio-red/10 hover:text-folio-red disabled:opacity-50"
+            title="Eliminar cuenta"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -172,11 +310,22 @@ export default function Empleados() {
   }, []);
 
   const filas = useMemo(() => agruparPorDiaYEmpleado(registros ?? []), [registros]);
+  const pendientes = empleados?.filter((e) => !e.activo) ?? [];
+  const activos = empleados?.filter((e) => e.activo) ?? [];
+
+  function actualizarEnLista(actualizado: ApiEmpleado) {
+    setEmpleados((prev) => prev?.map((e) => (e.id === actualizado.id ? actualizado : e)) ?? null);
+  }
+
+  function eliminarDeLista(id: number) {
+    setEmpleados((prev) => prev?.filter((e) => e.id !== id) ?? null);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8 sm:py-10">
-      <h1 className="font-display text-3xl font-semibold text-ink">Empleados y asistencia</h1>
-      <p className="mt-2 text-sm text-ash">Crea colaboradores, gestiona accesos y revisa las marcaciones.</p>
+      <p className="font-mono text-[11px] uppercase tracking-wider text-ash">Super admin</p>
+      <h1 className="mt-1 font-display text-3xl font-semibold text-ink">Cuentas y accesos</h1>
+      <p className="mt-2 text-sm text-ash">Aprueba registros, asigna roles, y gestiona el equipo.</p>
 
       {error && (
         <p className="mt-4 rounded-lg border border-folio-red/30 bg-folio-red/10 px-4 py-3 text-sm text-folio-red">
@@ -184,27 +333,45 @@ export default function Empleados() {
         </p>
       )}
 
-      <section className="mt-8 rounded-xl border border-ink/10 bg-white/60 p-5">
-        <h2 className="font-display text-lg font-semibold text-ink">Nuevo empleado</h2>
+      {pendientes.length > 0 && (
+        <section className="mt-8">
+          <h2 className="flex items-center gap-1.5 font-display text-lg font-semibold text-ink">
+            <AlertTriangle size={16} className="text-folio-amber" /> Pendientes de aprobar ({pendientes.length})
+          </h2>
+          <div className="mt-4 flex flex-col gap-2.5">
+            {pendientes.map((emp) => (
+              <FilaPendiente
+                key={emp.id}
+                emp={emp}
+                onResuelto={(actualizado) =>
+                  actualizado.activo ? actualizarEnLista(actualizado) : eliminarDeLista(emp.id)
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-10 rounded-xl border border-ink/10 bg-white/60 p-5">
+        <h2 className="font-display text-lg font-semibold text-ink">Crear cuenta directamente</h2>
+        <p className="mt-1 text-xs text-ash">Para cuando prefieras crear tú la cuenta en vez de que la persona se registre.</p>
         <div className="mt-4">
           <NuevoEmpleadoForm onCreado={(e) => setEmpleados((prev) => (prev ? [...prev, e] : [e]))} />
         </div>
       </section>
 
       <section className="mt-10">
-        <h2 className="font-display text-lg font-semibold text-ink">Equipo</h2>
+        <h2 className="font-display text-lg font-semibold text-ink">Equipo activo</h2>
         <div className="mt-4 flex flex-col gap-2.5">
           {empleados === null ? (
             <p className="text-sm text-ash">Cargando...</p>
+          ) : activos.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-ash-light px-5 py-6 text-center text-sm text-ash">
+              Todavía no hay cuentas activas.
+            </p>
           ) : (
-            empleados.map((emp) => (
-              <FilaEmpleado
-                key={emp.id}
-                emp={emp}
-                onCambiado={(actualizado) =>
-                  setEmpleados((prev) => prev?.map((e) => (e.id === actualizado.id ? actualizado : e)) ?? null)
-                }
-              />
+            activos.map((emp) => (
+              <FilaEmpleado key={emp.id} emp={emp} onCambiado={actualizarEnLista} onEliminado={eliminarDeLista} />
             ))
           )}
         </div>
@@ -272,3 +439,6 @@ export default function Empleados() {
     </div>
   );
 }
+
+// Referencia de etiquetas de rol, usada en otras vistas si hace falta.
+export { ROL_LABEL };

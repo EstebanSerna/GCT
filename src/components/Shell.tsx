@@ -1,10 +1,17 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, Fingerprint } from "lucide-react";
+import { Menu, X, Fingerprint, ShieldCheck } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "./Stamp";
+
+const ROL_LABEL: Record<string, string> = {
+  super_admin: "Super admin",
+  gerente: "Gerente de la firma",
+  contador: "Contador/a",
+  auxiliar: "Auxiliar contable",
+};
 
 export function Shell({ children }: { children: ReactNode }) {
   const { usuarioActual, cerrarSesion } = useApp();
@@ -13,7 +20,8 @@ export function Shell({ children }: { children: ReactNode }) {
 
   if (!usuarioActual) return <>{children}</>;
 
-  const isAdmin = usuarioActual.rol === "admin";
+  const esSuperAdmin = usuarioActual.rol === "super_admin";
+  const esGerenteOMas = esSuperAdmin || usuarioActual.rol === "gerente";
 
   const linkBase =
     "flex items-center gap-2.5 rounded-md px-3.5 py-2.5 text-sm font-medium transition-colors";
@@ -46,7 +54,7 @@ export function Shell({ children }: { children: ReactNode }) {
       >
         <Fingerprint size={14} /> Marcar asistencia
       </NavLink>
-      {isAdmin ? (
+      {esGerenteOMas ? (
         <NavLink
           to="/admin"
           onClick={() => setMenuAbierto(false)}
@@ -63,13 +71,13 @@ export function Shell({ children }: { children: ReactNode }) {
           <RingMark /> Mis tareas
         </NavLink>
       )}
-      {isAdmin && (
+      {esSuperAdmin && (
         <NavLink
           to="/empleados"
           onClick={() => setMenuAbierto(false)}
           className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
         >
-          <RingMark /> Empleados
+          <ShieldCheck size={14} /> Cuentas y accesos
         </NavLink>
       )}
       <NavLink
@@ -92,14 +100,20 @@ export function Shell({ children }: { children: ReactNode }) {
   const perfil = (
     <div className="mt-auto border-t border-paper/10 pt-4">
       <div className="mb-3 flex items-center gap-2.5 px-1">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-magenta text-[11px] font-semibold text-white">
-          {usuarioActual.iniciales}
-        </span>
+        {usuarioActual.fotoBase64 ? (
+          <img
+            src={usuarioActual.fotoBase64}
+            alt={usuarioActual.nombre}
+            className="h-8 w-8 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-magenta text-[11px] font-semibold text-white">
+            {usuarioActual.iniciales}
+          </span>
+        )}
         <div className="min-w-0 leading-tight">
           <p className="truncate text-sm text-white">{usuarioActual.nombre}</p>
-          <p className="text-[11px] text-paper/50">
-            {isAdmin ? "Gerente de la firma" : usuarioActual.rol === "contador" ? "Contador/a" : "Auxiliar contable"}
-          </p>
+          <p className="text-[11px] text-paper/50">{ROL_LABEL[usuarioActual.rol] ?? usuarioActual.rol}</p>
         </div>
       </div>
       <button

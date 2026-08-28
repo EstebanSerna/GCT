@@ -1,12 +1,14 @@
-export type Rol = "admin" | "contador" | "auxiliar";
+import type { Rol } from "../lib/api";
+export type { Rol };
 
 export interface Usuario {
-  id: string; // = usuario (ver abajo) — clave usada para asignar tareas/clientes
+  id: string; // = email (ver abajo) — clave usada para asignar tareas/clientes
   dbId?: number; // id real en la base de datos, solo presente tras iniciar sesión
   nombre: string;
   rol: Rol;
   iniciales: string;
-  usuario: string; // handle de acceso al portal
+  usuario: string; // correo con el que inicia sesión
+  fotoBase64?: string | null;
 }
 
 export interface Cliente {
@@ -41,7 +43,7 @@ export interface Tarea {
 // asignar las tareas y clientes de la demo. El "id" es el mismo "usuario"
 // con el que la persona inicia sesión de verdad.
 export const usuarios: Usuario[] = [
-  { id: "yesica.zuluaga", nombre: "Yesica Zuluaga", rol: "admin", iniciales: "YZ", usuario: "yesica.zuluaga" },
+  { id: "yesica.zuluaga", nombre: "Yesica Zuluaga", rol: "gerente", iniciales: "YZ", usuario: "yesica.zuluaga" },
   { id: "camilo.ruiz", nombre: "Camilo Ruiz", rol: "contador", iniciales: "CR", usuario: "camilo.ruiz" },
   { id: "valentina.gomez", nombre: "Valentina Gómez", rol: "contador", iniciales: "VG", usuario: "valentina.gomez" },
   { id: "laura.cifuentes", nombre: "Laura Cifuentes", rol: "contador", iniciales: "LC", usuario: "laura.cifuentes" },

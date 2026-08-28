@@ -1,5 +1,7 @@
 import { useApp } from "../context/AppContext";
 import { Stamp } from "../components/Stamp";
+import { MensajeDelDia } from "../components/MensajeDelDia";
+import { MENSAJES_GERENTE, mensajeDelDia } from "../data/mensajes";
 import type { Cliente } from "../data/seed";
 
 function riesgoDe(c: Cliente): "verde" | "amber" | "rojo" {
@@ -10,7 +12,7 @@ function riesgoDe(c: Cliente): "verde" | "amber" | "rojo" {
 
 export default function AdminDashboard() {
   const { clientes, tareas, usuarios } = useApp();
-  const contadores = usuarios.filter((u) => u.rol !== "admin");
+  const contadores = usuarios.filter((u) => u.rol !== "gerente");
 
   const conRiesgo = clientes.map((c) => ({ cliente: c, riesgo: riesgoDe(c) }));
   const rojos = conRiesgo.filter((x) => x.riesgo === "rojo");
@@ -23,6 +25,10 @@ export default function AdminDashboard() {
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-10">
       <p className="font-mono text-[11px] uppercase tracking-wider text-ash">Panel de gerencia · {hoy}</p>
       <h1 className="mt-1 font-display text-3xl font-semibold text-ink">Cómo va la firma hoy</h1>
+
+      <div className="mt-6">
+        <MensajeDelDia mensaje={mensajeDelDia(MENSAJES_GERENTE)} />
+      </div>
 
       {/* Semáforo de riesgo */}
       <section className="mt-9">

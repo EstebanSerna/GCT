@@ -1,7 +1,6 @@
 // Postgres connection + schema migration. Plain JS — see chatHandler.mjs
 // for why (runs unmodified on any Node host, no build step).
 import pg from "pg";
-import bcrypt from "bcryptjs";
 
 const { Pool } = pg;
 
@@ -24,70 +23,66 @@ export function getPool() {
   return pool;
 }
 
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS employees (
-  id SERIAL PRIMARY KEY,
-  nombre TEXT NOT NULL,
-  usuario TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  rol TEXT NOT NULL CHECK (rol IN ('admin','contador','auxiliar')),
-  iniciales TEXT NOT NULL,
-  activo BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS sessions (
-  token TEXT PRIMARY KEY,
-  employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  expires_at TIMESTAMPTZ NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS attendance_records (
-  id SERIAL PRIMARY KEY,
-  employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-  tipo TEXT NOT NULL CHECK (tipo IN ('entrada','salida')),
-  registrado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
-  lat DOUBLE PRECISION NOT NULL,
-  lng DOUBLE PRECISION NOT NULL,
-  precision_metros DOUBLE PRECISION,
-  distancia_oficina_metros DOUBLE PRECISION NOT NULL,
-  dentro_de_rango BOOLEAN NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_attendance_employee_time
-  ON attendance_records (employee_id, registrado_en DESC);
-`;
-
-// The 6 demo accounts that used to be hardcoded in src/data/seed.ts — kept
-// as the initial dataset so the portal isn't empty after migrating to a
-// real database. Same demo password as before; change it from the admin
-// panel once real employees are loaded.
-const SEED_EMPLOYEES = [
-  { nombre: "Yesica Zuluaga", usuario: "yesica.zuluaga", rol: "admin", iniciales: "YZ" },
-  { nombre: "Camilo Ruiz", usuario: "camilo.ruiz", rol: "contador", iniciales: "CR" },
-  { nombre: "Valentina Gómez", usuario: "valentina.gomez", rol: "contador", iniciales: "VG" },
-  { nombre: "Laura Cifuentes", usuario: "laura.cifuentes", rol: "contador", iniciales: "LC" },
-  { nombre: "Andrés Salazar", usuario: "andres.salazar", rol: "auxiliar", iniciales: "AS" },
-  { nombre: "Sebastián Morales", usuario: "sebastian.morales", rol: "auxiliar", iniciales: "SM" },
+// Cada sentencia se ejecuta por separado y se ignora si ya no aplica (por
+// ejemplo, renombrar una columna que ya fue renombrada en un despliegue
+// anterior) — así esta migración es segura de correr en cada arranque,
+// tanto en una base de datos nueva como en una que ya tiene datos reales.
+const MIGRATIONS = [
+  `CREATE TABLE IF NOT EXISTS employees (
+    id SERIAL PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    rol TEXT,
+    iniciales TEXT NOT NULL,
+    documento TEXT,
+    telefono TEXT,
+    foto_base64 TEXT,
+    activo BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  // --- migración desde el esquema anterior (login con "usuario", roles
+  // limitados a admin/contador/auxiliar, sin foto/documento/teléfono) ---
+  `ALTER TABLE employees RENAME COLUMN usuario TO email`,
+  `ALTER TABLE employees ADD COLUMN IF NOT EXISTS documento TEXT`,
+  `ALTER TABLE employees ADD COLUMN IF NOT EXISTS telefono TEXT`,
+  `ALTER TABLE employees ADD COLUMN IF NOT EXISTS foto_base64 TEXT`,
+  `ALTER TABLE employees ALTER COLUMN rol DROP NOT NULL`,
+  `ALTER TABLE employees ALTER COLUMN activo SET DEFAULT false`,
+  `ALTER TABLE employees DROP CONSTRAINT IF EXISTS employees_rol_check`,
+  `UPDATE employees SET rol = 'gerente' WHERE rol = 'admin'`,
+  `ALTER TABLE employees ADD CONSTRAINT employees_rol_check CHECK (rol IN ('super_admin','gerente','contador','auxiliar'))`,
+  // --- resto de las tablas ---
+  `CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS attendance_records (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL CHECK (tipo IN ('entrada','salida')),
+    registrado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+    lat DOUBLE PRECISION NOT NULL,
+    lng DOUBLE PRECISION NOT NULL,
+    precision_metros DOUBLE PRECISION,
+    distancia_oficina_metros DOUBLE PRECISION NOT NULL,
+    dentro_de_rango BOOLEAN NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_attendance_employee_time
+    ON attendance_records (employee_id, registrado_en DESC)`,
 ];
-const SEED_PASSWORD = "Contable2026";
 
 export async function migrate({ logger = console } = {}) {
   const db = getPool();
-  await db.query(SCHEMA);
-
-  const { rows } = await db.query("SELECT COUNT(*)::int AS count FROM employees");
-  if (rows[0].count === 0) {
-    logger.log?.("[db] Tabla employees vacía — cargando cuentas iniciales.");
-    const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
-    for (const emp of SEED_EMPLOYEES) {
-      await db.query(
-        `INSERT INTO employees (nombre, usuario, password_hash, rol, iniciales)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (usuario) DO NOTHING`,
-        [emp.nombre, emp.usuario, passwordHash, emp.rol, emp.iniciales]
-      );
+  for (const statement of MIGRATIONS) {
+    try {
+      await db.query(statement);
+    } catch (err) {
+      // Esperado cuando el paso ya no aplica (columna ya renombrada,
+      // restricción que ya no existe, etc.) — se sigue con el resto.
+      logger.log?.(`[db] Paso de migración omitido (${String(err.message).slice(0, 80)})`);
     }
   }
 }

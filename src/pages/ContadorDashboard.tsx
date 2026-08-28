@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { Stamp } from "../components/Stamp";
 import { EvidenciaModal } from "../components/EvidenciaModal";
+import { MensajeDelDia } from "../components/MensajeDelDia";
+import { MENSAJES_CONTADOR, MENSAJES_AUXILIAR, mensajeDelDia } from "../data/mensajes";
 import type { Tarea } from "../data/seed";
 import { Link } from "react-router-dom";
 
@@ -12,6 +14,7 @@ export default function ContadorDashboard() {
   const misTareas = tareas.filter((t) => t.contadorId === usuarioActual?.id);
   const pendientes = misTareas.filter((t) => t.estado !== "completada");
   const completadas = misTareas.filter((t) => t.estado === "completada");
+  const mensajes = usuarioActual?.rol === "auxiliar" ? MENSAJES_AUXILIAR : MENSAJES_CONTADOR;
 
   function nombreCliente(clienteId: string) {
     return clientes.find((c) => c.id === clienteId)?.nombre ?? "Cliente";
@@ -26,6 +29,10 @@ export default function ContadorDashboard() {
       <p className="mt-2 text-sm text-ash">
         {pendientes.length} pendientes · {completadas.length} completadas con soporte
       </p>
+
+      <div className="mt-6">
+        <MensajeDelDia mensaje={mensajeDelDia(mensajes)} />
+      </div>
 
       <div className="mt-8 flex flex-col gap-2.5">
         {pendientes.map((t) => (

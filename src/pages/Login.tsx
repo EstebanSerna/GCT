@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, User, ArrowRight, Info } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "../components/Stamp";
@@ -10,7 +10,7 @@ export default function Login() {
   const { iniciarSesion } = useApp();
   const navigate = useNavigate();
 
-  const [usuario, setUsuario] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [verPassword, setVerPassword] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -21,7 +21,7 @@ export default function Login() {
     setError(null);
     setCargando(true);
 
-    const resultado = await iniciarSesion(usuario.trim(), password);
+    const resultado = await iniciarSesion(email.trim(), password);
 
     if (!resultado.ok) {
       setError(resultado.error ?? "Usuario o contraseña incorrectos.");
@@ -59,7 +59,7 @@ export default function Login() {
           </span>
           <h1 className="font-display text-2xl font-semibold text-white">Portal de colaboradores</h1>
           <p className="mt-2 flex items-center gap-1.5 text-sm text-paper/50">
-            <RingMark size={12} /> Ingresa con tu usuario y contraseña
+            <RingMark size={12} /> Ingresa con tu correo y contraseña
           </p>
         </div>
 
@@ -68,16 +68,16 @@ export default function Login() {
           className="rounded-2xl border border-paper/10 bg-ink-soft/80 p-6 shadow-2xl shadow-black/30 backdrop-blur"
         >
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-paper/70">Usuario</span>
+            <span className="font-medium text-paper/70">Correo electrónico</span>
             <span className="flex items-center gap-2 rounded-lg border border-paper/15 bg-ink px-3.5 py-2.5 focus-within:border-magenta">
-              <User size={16} className="shrink-0 text-paper/35" />
+              <Mail size={16} className="shrink-0 text-paper/35" />
               <input
                 required
                 autoFocus
-                type="text"
-                value={usuario}
-                onChange={(e) => setUsuario(e.target.value)}
-                placeholder="nombre.apellido"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tucorreo@ejemplo.com"
                 className="w-full bg-transparent text-sm text-white outline-none placeholder:text-paper/30"
               />
             </span>
@@ -144,13 +144,12 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-5 flex items-start gap-2 rounded-lg border border-paper/10 bg-white/[0.03] px-3.5 py-3 text-[11px] leading-relaxed text-paper/40">
-          <Info size={13} className="mt-0.5 shrink-0" />
-          <span>
-            Acceso demo — usuario <span className="font-mono text-paper/60">camilo.ruiz</span> · contraseña{" "}
-            <span className="font-mono text-paper/60">Contable2026</span>. Datos ilustrativos, no reales.
-          </span>
-        </div>
+        <p className="mt-6 text-center text-sm text-paper/45">
+          ¿Eres nuevo en el equipo?{" "}
+          <Link to="/registro" className="font-medium text-magenta-soft hover:text-white">
+            Crea tu cuenta
+          </Link>
+        </p>
       </div>
     </div>
   );

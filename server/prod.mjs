@@ -7,9 +7,17 @@ import { fileURLToPath } from "node:url";
 import { createChatHandler } from "./chatHandler.mjs";
 import { corsMiddleware } from "./cors.mjs";
 import { migrate } from "./db.mjs";
-import { loginHandler, logoutHandler, meHandler, requireAuth, requireAdmin } from "./auth.mjs";
+import {
+  registroHandler,
+  loginHandler,
+  logoutHandler,
+  meHandler,
+  requireAuth,
+  requireGerenteOAbove,
+  requireSuperAdmin,
+} from "./auth.mjs";
 import { createMarkHandler, getTodayHandler, getAllHandler } from "./attendance.mjs";
-import { listHandler, createHandler, updateHandler } from "./employees.mjs";
+import { listHandler, listEquipoHandler, createHandler, updateHandler, deleteHandler } from "./employees.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "..", "dist");
@@ -27,8 +35,11 @@ app.all("/api/chat", createChatHandler({ logger: console }));
 // management. These need a real database, so — unlike /api/chat — they
 // only run in production, not in the local Vite dev server.
 const api = express.Router();
-api.use(express.json());
+// Límite generoso (1mb) porque el registro incluye una foto de perfil en
+// base64 dentro del JSON.
+api.use(express.json({ limit: "1mb" }));
 
+api.post("/auth/registro", registroHandler);
 api.post("/auth/login", loginHandler);
 api.post("/auth/logout", requireAuth, logoutHandler);
 api.get("/auth/me", requireAuth, meHandler);
@@ -36,11 +47,17 @@ api.get("/auth/me", requireAuth, meHandler);
 api.post("/attendance/entrada", requireAuth, createMarkHandler("entrada"));
 api.post("/attendance/salida", requireAuth, createMarkHandler("salida"));
 api.get("/attendance/today", requireAuth, getTodayHandler);
-api.get("/attendance", requireAdmin, getAllHandler);
+api.get("/attendance", requireGerenteOAbove, getAllHandler);
 
-api.get("/employees", requireAdmin, listHandler);
-api.post("/employees", requireAdmin, createHandler);
-api.patch("/employees/:id", requireAdmin, updateHandler);
+// Gestión de cuentas: exclusiva del super admin, tal como se definió.
+api.get("/employees", requireSuperAdmin, listHandler);
+api.post("/employees", requireSuperAdmin, createHandler);
+api.patch("/employees/:id", requireSuperAdmin, updateHandler);
+api.delete("/employees/:id", requireSuperAdmin, deleteHandler);
+
+// Vista liviana del equipo activo, para la gerente (reportes, sin datos
+// sensibles de más).
+api.get("/employees/equipo", requireGerenteOAbove, listEquipoHandler);
 
 app.use("/api", api);
 

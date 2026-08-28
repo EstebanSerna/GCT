@@ -1,4 +1,5 @@
 import { getPool } from "./db.mjs";
+import { notificarAsistencia } from "./whatsapp.mjs";
 
 const EARTH_RADIUS_M = 6371000;
 
@@ -58,6 +59,18 @@ export function createMarkHandler(tipo) {
     );
 
     res.json({ record: rows[0] });
+
+    // Se envía después de responder al empleado — un problema notificando
+    // a la gerente nunca debe demorar ni bloquear el registro de la marca.
+    void notificarAsistencia({
+      nombreEmpleado: req.employee.nombre,
+      tipo,
+      horaTexto: new Date(rows[0].registrado_en).toLocaleTimeString("es-CO", {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      dentroDeRango,
+    });
   };
 }
 

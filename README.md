@@ -95,6 +95,60 @@ y solo corre en producción — el servidor de desarrollo local
 local configurada. Para probarlo hay que hacerlo contra el backend
 desplegado.
 
+### Notificación por WhatsApp a la gerente
+
+Cada vez que alguien marca entrada o salida, `server/whatsapp.mjs` le manda un
+WhatsApp a la gerente con la API oficial de Meta (WhatsApp Business Cloud
+API). Si las variables de entorno no están configuradas, simplemente se
+omite el envío — nunca bloquea ni rompe el registro de asistencia.
+
+**Configurar Meta desde cero:**
+
+1. Entra a https://developers.facebook.com/ con tu cuenta de Facebook →
+   **Mis apps** → **Crear app** → tipo **"Negocios"** → nómbrala, por
+   ejemplo, "GCT Asistencia".
+2. Dentro de la app, agrega el producto **WhatsApp**.
+3. En **WhatsApp → Configuración de la API**, Meta te da automáticamente un
+   **número de prueba gratuito** (no hace falta verificar un negocio para
+   empezar). Ahí mismo:
+   - Agrega el número de WhatsApp de la gerente como destinatario de
+     prueba y verifícalo con el código que le llega por SMS/llamada.
+   - Copia el **Phone Number ID** que aparece en el panel.
+4. El token que se ve ahí por defecto **vence en 24 horas** — no sirve para
+   el servidor. Genera uno permanente: **Configuración del negocio** (Meta
+   Business Suite) → **Usuarios → Usuarios del sistema** → crear uno nuevo
+   → asígnale la app de WhatsApp con permiso de administrar → **Generar
+   token**, marcando el permiso `whatsapp_business_messaging`, sin fecha
+   de vencimiento.
+5. Crea la plantilla de mensaje (obligatoria para poder escribirle primero
+   a alguien, sin que ellos te hayan escrito antes): en **WhatsApp
+   Manager** → **Plantillas de mensajes** → **Crear plantilla**:
+   - Categoría: **Utilidad**
+   - Nombre: `registro_asistencia` (si usas otro nombre, ajusta
+     `WHATSAPP_TEMPLATE_NAME` más abajo)
+   - Idioma: Español (CO)
+   - Cuerpo del mensaje, con 3 variables:
+     ```
+     Registro de asistencia: {{1}} {{2}} a las {{3}}.
+     ```
+   - Envíala a revisión. Con categoría "Utilidad" y este texto tan simple,
+     normalmente la aprueban en minutos u horas.
+6. Con todo aprobado, agrega estas variables en el panel de Railway
+   (**nunca** en este repositorio):
+
+   | Variable | Valor |
+   |---|---|
+   | `WHATSAPP_TOKEN` | el token permanente del paso 4 |
+   | `WHATSAPP_PHONE_NUMBER_ID` | el Phone Number ID del paso 3 |
+   | `WHATSAPP_TEMPLATE_NAME` | `registro_asistencia` (o el nombre que usaste) |
+   | `MANAGER_WHATSAPP_NUMBER` | número de la gerente en formato internacional sin "+" ni espacios, ej. `573001234567` |
+
+El número de prueba de Meta solo puede escribirle a los destinatarios que
+agregues y verifiques manualmente en la consola (perfecto para este caso,
+ya que solo se notifica a la gerente). Si en el futuro se necesita enviar
+a más números o de forma abierta, hay que verificar un número de WhatsApp
+Business real dentro de un Portafolio de Negocios verificado en Meta.
+
 ## Despliegue en producción
 
 La arquitectura está dividida en dos partes:

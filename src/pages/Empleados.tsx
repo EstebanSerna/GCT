@@ -1,22 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { UserPlus, LogIn, LogOut, ShieldCheck, ShieldOff, KeyRound } from "lucide-react";
+import { UserPlus, ShieldCheck, ShieldOff, KeyRound, Download, AlertTriangle } from "lucide-react";
 import { api, ApiError, type ApiEmpleado, type Rol, type RegistroAsistenciaAdmin } from "../lib/api";
+import { agruparPorDiaYEmpleado, descargarCsv } from "../lib/reporte";
 
 const ROL_LABEL: Record<Rol, string> = {
   admin: "Gerente",
   contador: "Contador/a",
   auxiliar: "Auxiliar contable",
 };
-
-function fechaHoraDe(iso: string) {
-  return new Date(iso).toLocaleString("es-CO", {
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 function NuevoEmpleadoForm({ onCreado }: { onCreado: (e: ApiEmpleado) => void }) {
   const [nombre, setNombre] = useState("");
@@ -179,6 +171,8 @@ export default function Empleados() {
       .catch((err) => setError(err instanceof ApiError ? err.message : "No se pudo cargar la información."));
   }, []);
 
+  const filas = useMemo(() => agruparPorDiaYEmpleado(registros ?? []), [registros]);
+
   return (
     <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8 sm:py-10">
       <h1 className="font-display text-3xl font-semibold text-ink">Empleados y asistencia</h1>
@@ -217,38 +211,61 @@ export default function Empleados() {
       </section>
 
       <section className="mt-10 mb-6">
-        <h2 className="font-display text-lg font-semibold text-ink">Marcaciones recientes</h2>
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold text-ink">Informe de asistencia</h2>
+          {filas.length > 0 && (
+            <button
+              onClick={() => descargarCsv(filas, `asistencia-gct-${new Date().toISOString().slice(0, 10)}.csv`)}
+              className="flex shrink-0 items-center gap-1.5 rounded-md border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-ink/5"
+            >
+              <Download size={13} /> Descargar CSV
+            </button>
+          )}
+        </div>
+        <p className="mt-1 text-sm text-ash">Entrada, salida y horas trabajadas por persona y día.</p>
+
+        <div className="mt-4 overflow-x-auto rounded-xl border border-ink/10 bg-white/60">
           {registros === null ? (
-            <p className="text-sm text-ash">Cargando...</p>
-          ) : registros.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-ash-light px-5 py-6 text-center text-sm text-ash">
-              Todavía no hay marcaciones registradas.
-            </p>
+            <p className="p-5 text-sm text-ash">Cargando...</p>
+          ) : filas.length === 0 ? (
+            <p className="p-6 text-center text-sm text-ash">Todavía no hay marcaciones registradas.</p>
           ) : (
-            registros.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-2.5"
-              >
-                <span className="flex min-w-0 items-center gap-2 text-sm">
-                  {r.tipo === "entrada" ? (
-                    <LogIn size={14} className="shrink-0 text-folio-green" />
-                  ) : (
-                    <LogOut size={14} className="shrink-0 text-magenta" />
-                  )}
-                  <span className="truncate font-medium text-ink">{r.nombre}</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2 font-mono text-[11px] text-ash">
-                  {!r.dentro_de_rango && (
-                    <span className="rounded-full bg-folio-amber/15 px-2 py-0.5 text-folio-amber">
-                      {Math.round(r.distancia_oficina_metros)} m
-                    </span>
-                  )}
-                  {fechaHoraDe(r.registrado_en)}
-                </span>
-              </div>
-            ))
+            <table className="w-full min-w-[560px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-ink/10 text-[11px] uppercase tracking-wide text-ash">
+                  <th className="px-4 py-2.5 font-medium">Día</th>
+                  <th className="px-4 py-2.5 font-medium">Empleado</th>
+                  <th className="px-4 py-2.5 font-medium">Entrada</th>
+                  <th className="px-4 py-2.5 font-medium">Salida</th>
+                  <th className="px-4 py-2.5 font-medium">Horas</th>
+                  <th className="px-4 py-2.5 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((f) => (
+                  <tr key={`${f.fecha}-${f.employeeId}`} className="border-b border-ink/5 last:border-0">
+                    <td className="whitespace-nowrap px-4 py-2.5 text-ash">{f.fechaLegible}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-medium text-ink">{f.nombre}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-folio-green">
+                      {f.entrada ? new Date(f.entrada.registrado_en).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" }) : "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-magenta-deep">
+                      {f.salida ? new Date(f.salida.registrado_en).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" }) : "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-ink">
+                      {f.horasTrabajadas !== null ? `${f.horasTrabajadas.toFixed(1)} h` : "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5">
+                      {f.algunoFueraDeRango && (
+                        <span className="flex items-center gap-1 text-[11px] text-folio-amber" title="Alguna marca fuera del rango de la oficina">
+                          <AlertTriangle size={12} /> fuera de rango
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </section>

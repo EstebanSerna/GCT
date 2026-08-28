@@ -47,13 +47,15 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const navegacion = (
     <nav className="flex flex-col gap-1">
-      <NavLink
-        to="/asistencia"
-        onClick={() => setMenuAbierto(false)}
-        className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
-      >
-        <Fingerprint size={14} /> Marcar asistencia
-      </NavLink>
+      {!esGerenteOMas && (
+        <NavLink
+          to="/asistencia"
+          onClick={() => setMenuAbierto(false)}
+          className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+        >
+          <Fingerprint size={14} /> Marcar asistencia
+        </NavLink>
+      )}
       {esGerenteOMas ? (
         <NavLink
           to="/admin"

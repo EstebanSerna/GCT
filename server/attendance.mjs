@@ -30,9 +30,18 @@ function isValidCoord(value) {
   return typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= 180;
 }
 
+// La gerencia y el super admin no marcan entrada/salida — solo el equipo
+// operativo (contadores y auxiliares).
+const ROLES_QUE_MARCAN = ["contador", "auxiliar"];
+
 /** POST /api/attendance/:tipo  (tipo = "entrada" | "salida") */
 export function createMarkHandler(tipo) {
   return async function markHandler(req, res) {
+    if (!ROLES_QUE_MARCAN.includes(req.employee.rol)) {
+      res.status(403).json({ error: "Tu rol no requiere marcar entrada/salida." });
+      return;
+    }
+
     const office = getOfficeConfig();
     if (!office) {
       res.status(500).json({

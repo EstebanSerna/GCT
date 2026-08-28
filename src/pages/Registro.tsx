@@ -5,6 +5,7 @@ import { User, IdCard, Phone, Mail, Lock, Camera, ArrowRight, Check, X, CheckCir
 import { useApp } from "../context/AppContext";
 import { api, ApiError } from "../lib/api";
 import { archivoAFotoBase64 } from "../lib/foto";
+import { rutaInicioPara } from "../lib/rutas";
 import logo from "../assets/logo-mark.png";
 
 interface Requisito {
@@ -78,7 +79,7 @@ export default function Registro() {
         setPendienteAprobacion(true);
       } else {
         iniciarSesionDesdeRegistro(resultado.employee);
-        navigate("/asistencia");
+        navigate(rutaInicioPara(resultado.employee.rol as NonNullable<typeof resultado.employee.rol>));
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo completar el registro.");

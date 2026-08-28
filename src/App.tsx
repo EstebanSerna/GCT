@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "./context/AppContext";
 import type { Rol } from "./lib/api";
+import { rutaInicioPara } from "./lib/rutas";
 import { Shell } from "./components/Shell";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -20,7 +21,7 @@ function Protegida({ children, roles }: { children: ReactNode; roles?: Rol[] }) 
     return <div className="flex min-h-screen items-center justify-center bg-ink" />;
   }
   if (!usuarioActual) return <Navigate to="/portal" replace />;
-  if (roles && !roles.includes(usuarioActual.rol)) return <Navigate to="/asistencia" replace />;
+  if (roles && !roles.includes(usuarioActual.rol)) return <Navigate to={rutaInicioPara(usuarioActual.rol)} replace />;
 
   return <Shell>{children}</Shell>;
 }
@@ -31,8 +32,8 @@ function Rutas() {
       <Route path="/" element={<Home />} />
       <Route path="/portal" element={<Login />} />
       <Route path="/registro" element={<Registro />} />
-      <Route path="/asistencia" element={<Protegida><Asistencia /></Protegida>} />
-      <Route path="/contador" element={<Protegida><ContadorDashboard /></Protegida>} />
+      <Route path="/asistencia" element={<Protegida roles={["contador", "auxiliar"]}><Asistencia /></Protegida>} />
+      <Route path="/contador" element={<Protegida roles={["contador", "auxiliar"]}><ContadorDashboard /></Protegida>} />
       <Route path="/admin" element={<Protegida roles={["gerente", "super_admin"]}><AdminDashboard /></Protegida>} />
       <Route path="/empleados" element={<Protegida roles={["super_admin"]}><Empleados /></Protegida>} />
       <Route path="/clientes" element={<Protegida><Clientes /></Protegida>} />

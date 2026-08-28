@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { usuarios, clientesSeed, tareasSeed } from "../data/seed";
 import type { Usuario, Cliente, Tarea } from "../data/seed";
-import { api, getToken, type ApiEmpleado } from "../lib/api";
+import { api, getToken, type ApiEmpleado, type Rol } from "../lib/api";
 
 // Convierte el empleado que devuelve el backend real al formato "Usuario"
 // que usa el resto de la app. El "id" es el mismo correo con el que inició
@@ -27,7 +27,7 @@ function aUsuario(emp: ApiEmpleado): Usuario {
 interface AppState {
   usuarioActual: Usuario | null;
   cargandoSesion: boolean;
-  iniciarSesion: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  iniciarSesion: (email: string, password: string) => Promise<{ ok: boolean; error?: string; rol?: Rol }>;
   /** Para cuando el registro deja la sesión ya iniciada (solo el correo del super admin). */
   iniciarSesionDesdeRegistro: (employee: ApiEmpleado) => void;
   cerrarSesion: () => void;
@@ -66,7 +66,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const employee = await api.login(email, password);
       setUsuarioActual(aUsuario(employee));
-      return { ok: true };
+      return { ok: true, rol: employee.rol as Rol };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : "No se pudo iniciar sesión." };
     }

@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import { rutaInicioPara } from "../lib/rutas";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "../components/Stamp";
 
@@ -23,13 +24,13 @@ export default function Login() {
 
     const resultado = await iniciarSesion(email.trim(), password);
 
-    if (!resultado.ok) {
+    if (!resultado.ok || !resultado.rol) {
       setError(resultado.error ?? "Usuario o contraseña incorrectos.");
       setCargando(false);
       return;
     }
 
-    navigate("/asistencia");
+    navigate(rutaInicioPara(resultado.rol));
   }
 
   return (

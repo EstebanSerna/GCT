@@ -12,7 +12,7 @@ import ContadorDashboard from "./pages/ContadorDashboard";
 import Clientes from "./pages/Clientes";
 import AdminDashboard from "./pages/AdminDashboard";
 import Empleados from "./pages/Empleados";
-import Futuro from "./pages/Futuro";
+import Calendario from "./pages/Calendario";
 
 function Protegida({ children, roles }: { children: ReactNode; roles?: Rol[] }) {
   const { usuarioActual, cargandoSesion } = useApp();
@@ -37,7 +37,7 @@ function Rutas() {
       <Route path="/admin" element={<Protegida roles={["gerente", "super_admin"]}><AdminDashboard /></Protegida>} />
       <Route path="/empleados" element={<Protegida roles={["super_admin"]}><Empleados /></Protegida>} />
       <Route path="/clientes" element={<Protegida><Clientes /></Protegida>} />
-      <Route path="/futuro" element={<Protegida><Futuro /></Protegida>} />
+      <Route path="/calendario" element={<Protegida><Calendario /></Protegida>} />
     </Routes>
   );
 }

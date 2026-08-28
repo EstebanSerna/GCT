@@ -52,18 +52,24 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-4 flex flex-col gap-2">
-          {[...rojos, ...ambar, ...verdes].map(({ cliente, riesgo }) => (
-            <div
-              key={cliente.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-ink">{cliente.nombre}</p>
-                <p className="truncate text-xs text-ash">{cliente.proximoVencimiento}</p>
+          {clientes.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-ash-light px-5 py-6 text-center text-sm text-ash">
+              Todavía no hay clientes cargados.
+            </p>
+          ) : (
+            [...rojos, ...ambar, ...verdes].map(({ cliente, riesgo }) => (
+              <div
+                key={cliente.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-ink">{cliente.nombre}</p>
+                  <p className="truncate text-xs text-ash">{cliente.proximoVencimiento}</p>
+                </div>
+                <Stamp estado={riesgo} compact />
               </div>
-              <Stamp estado={riesgo} compact />
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
 
@@ -72,6 +78,11 @@ export default function AdminDashboard() {
         <h2 className="font-display text-lg font-semibold text-ink">Carga de trabajo del equipo</h2>
         <p className="mt-1 text-sm text-ash">Tareas activas por contador/a, para repartir el trabajo a tiempo.</p>
         <div className="mt-4 flex flex-col gap-2.5">
+          {contadores.length === 0 && (
+            <p className="rounded-lg border border-dashed border-ash-light px-5 py-6 text-center text-sm text-ash">
+              Todavía no hay tareas de ejemplo asignadas al equipo.
+            </p>
+          )}
           {contadores.map((u) => {
             const suyas = tareas.filter((t) => t.contadorId === u.id);
             const pendientes = suyas.filter((t) => t.estado !== "completada").length;

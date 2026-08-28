@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, Fingerprint, ShieldCheck } from "lucide-react";
+import { Menu, X, Fingerprint, ShieldCheck, CalendarDays } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "./Stamp";
@@ -90,11 +90,11 @@ export function Shell({ children }: { children: ReactNode }) {
         <RingMark /> Clientes
       </NavLink>
       <NavLink
-        to="/futuro"
+        to="/calendario"
         onClick={() => setMenuAbierto(false)}
         className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
       >
-        <RingMark /> Próximamente
+        <CalendarDays size={14} /> Calendario
       </NavLink>
     </nav>
   );

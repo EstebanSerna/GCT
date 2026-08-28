@@ -95,19 +95,25 @@ export default function Clientes() {
       <p className="mt-2 text-sm text-ash">{clientes.length} hojas de vida activas</p>
 
       <div className="mt-8 flex flex-col gap-2.5">
-        {clientes.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setSeleccionado(c)}
-            className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-4 text-left transition-colors hover:border-magenta/40 sm:px-5"
-          >
-            <div className="min-w-0">
-              <p className="truncate font-medium text-ink">{c.nombre}</p>
-              <p className="mt-0.5 truncate text-xs text-ash">{c.regimen} · {nombreContador(c.contadorId)}</p>
-            </div>
-            <Stamp estado={riesgoDe(c)} compact />
-          </button>
-        ))}
+        {clientes.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-ash-light px-5 py-8 text-center text-sm text-ash">
+            Todavía no hay clientes cargados. Cuando se agreguen, sus hojas de vida aparecerán acá.
+          </p>
+        ) : (
+          clientes.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setSeleccionado(c)}
+              className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-4 text-left transition-colors hover:border-magenta/40 sm:px-5"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium text-ink">{c.nombre}</p>
+                <p className="mt-0.5 truncate text-xs text-ash">{c.regimen} · {nombreContador(c.contadorId)}</p>
+              </div>
+              <Stamp estado={riesgoDe(c)} compact />
+            </button>
+          ))
+        )}
       </div>
     </div>
   );

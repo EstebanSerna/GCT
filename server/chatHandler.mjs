@@ -2,6 +2,7 @@
 // middleware, see devPlugin.mjs) and the production server (prod.mjs).
 // Plain JS on purpose: it runs as-is on any Node host with no build step.
 import Anthropic from "@anthropic-ai/sdk";
+import { applyCors } from "./cors.mjs";
 
 const SYSTEM_PROMPT = `Eres el asistente virtual de "Gerencia Contable & Tributaria", una firma de contadores en Colombia. Ayudas a visitantes del sitio web con preguntas generales de contabilidad, impuestos y normativa tributaria colombiana (DIAN, IVA, régimen simple de tributación, retención en la fuente, declaración de renta, nómina, seguridad social, constitución de empresas, etc.).
 
@@ -57,32 +58,6 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-// The site (HostCarriel) and the API (Railway) live on different domains,
-// so the browser needs an explicit CORS allowlist. Configure via the
-// ALLOWED_ORIGINS env var (comma-separated); defaults cover the production
-// domain plus local dev.
-const DEFAULT_ALLOWED_ORIGINS = [
-  "https://www.gct.com.co",
-  "https://gct.com.co",
-  "http://localhost:5173",
-];
-
-function getAllowedOrigins() {
-  const fromEnv = process.env.ALLOWED_ORIGINS;
-  if (!fromEnv) return DEFAULT_ALLOWED_ORIGINS;
-  return fromEnv.split(",").map((o) => o.trim()).filter(Boolean);
-}
-
-function applyCors(req, res, allowedOrigins) {
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  }
-}
-
 /**
  * Builds a Connect/Express-compatible request handler for POST /api/chat.
  * `logger` needs `.warn(msg)` and `.error(msg)` — defaults to console.
@@ -90,7 +65,6 @@ function applyCors(req, res, allowedOrigins) {
 export function createChatHandler({ logger = console } = {}) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const client = apiKey ? new Anthropic({ apiKey }) : null;
-  const allowedOrigins = getAllowedOrigins();
 
   if (!apiKey) {
     logger.warn(
@@ -99,7 +73,7 @@ export function createChatHandler({ logger = console } = {}) {
   }
 
   return async function chatHandler(req, res) {
-    applyCors(req, res, allowedOrigins);
+    applyCors(req, res);
 
     if (req.method === "OPTIONS") {
       res.statusCode = 204;

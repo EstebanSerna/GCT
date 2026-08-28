@@ -3,12 +3,11 @@ import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, User, ArrowRight, Info } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { usuarios } from "../data/seed";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "../components/Stamp";
 
 export default function Login() {
-  const { setUsuarioActual } = useApp();
+  const { iniciarSesion } = useApp();
   const navigate = useNavigate();
 
   const [usuario, setUsuario] = useState("");
@@ -17,26 +16,20 @@ export default function Login() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setCargando(true);
 
-    // Simula una verificación de credenciales contra el servidor.
-    window.setTimeout(() => {
-      const encontrado = usuarios.find(
-        (u) => u.usuario.toLowerCase() === usuario.trim().toLowerCase() && u.password === password
-      );
+    const resultado = await iniciarSesion(usuario.trim(), password);
 
-      if (!encontrado) {
-        setError("Usuario o contraseña incorrectos. Verifica tus datos e intenta de nuevo.");
-        setCargando(false);
-        return;
-      }
+    if (!resultado.ok) {
+      setError(resultado.error ?? "Usuario o contraseña incorrectos.");
+      setCargando(false);
+      return;
+    }
 
-      setUsuarioActual(encontrado);
-      navigate(encontrado.rol === "admin" ? "/admin" : "/contador");
-    }, 550);
+    navigate("/asistencia");
   }
 
   return (

@@ -36,9 +36,10 @@ jobs:
       - name: Compilar para producción
         run: npm run build
         env:
-          # URL pública del backend del asistente de IA (Railway) — no es
-          # secreta, es la misma URL con la que cualquiera puede hablarle.
+          # URLs públicas del backend en Railway — no son secretas, son las
+          # mismas con las que cualquiera puede hablarle desde el navegador.
           VITE_CHAT_API_URL: https://api.gct.com.co/api/chat
+          VITE_API_BASE_URL: https://api.gct.com.co
 
       - name: Crear carpetas nuevas en el servidor (SFTP-Deploy-Action no las crea en modo sftp_only)
         run: |

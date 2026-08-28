@@ -1,13 +1,13 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Fingerprint } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "./Stamp";
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { usuarioActual, setUsuarioActual } = useApp();
+  const { usuarioActual, cerrarSesion } = useApp();
   const navigate = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -39,6 +39,13 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const navegacion = (
     <nav className="flex flex-col gap-1">
+      <NavLink
+        to="/asistencia"
+        onClick={() => setMenuAbierto(false)}
+        className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+      >
+        <Fingerprint size={14} /> Marcar asistencia
+      </NavLink>
       {isAdmin ? (
         <NavLink
           to="/admin"
@@ -54,6 +61,15 @@ export function Shell({ children }: { children: ReactNode }) {
           className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
         >
           <RingMark /> Mis tareas
+        </NavLink>
+      )}
+      {isAdmin && (
+        <NavLink
+          to="/empleados"
+          onClick={() => setMenuAbierto(false)}
+          className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+        >
+          <RingMark /> Empleados
         </NavLink>
       )}
       <NavLink
@@ -88,7 +104,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
       <button
         onClick={() => {
-          setUsuarioActual(null);
+          cerrarSesion();
           navigate("/portal");
         }}
         className="w-full rounded-md px-3 py-2 text-left text-xs text-paper/50 transition-colors hover:bg-ink-faint hover:text-paper"

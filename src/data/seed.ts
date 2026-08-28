@@ -1,12 +1,12 @@
 export type Rol = "admin" | "contador" | "auxiliar";
 
 export interface Usuario {
-  id: string;
+  id: string; // = usuario (ver abajo) — clave usada para asignar tareas/clientes
+  dbId?: number; // id real en la base de datos, solo presente tras iniciar sesión
   nombre: string;
   rol: Rol;
   iniciales: string;
   usuario: string; // handle de acceso al portal
-  password: string; // demo: contraseña en texto plano, no usar así en producción
 }
 
 export interface Cliente {
@@ -36,15 +36,17 @@ export interface Tarea {
   completadaHora?: string;
 }
 
-const DEMO_PASSWORD = "Contable2026";
-
+// Estos usuarios ya no se usan para iniciar sesión (eso ahora lo maneja el
+// backend real, ver src/lib/api.ts) — se mantienen como referencia para
+// asignar las tareas y clientes de la demo. El "id" es el mismo "usuario"
+// con el que la persona inicia sesión de verdad.
 export const usuarios: Usuario[] = [
-  { id: "u-yesica", nombre: "Yesica Zuluaga", rol: "admin", iniciales: "YZ", usuario: "yesica.zuluaga", password: DEMO_PASSWORD },
-  { id: "u-camilo", nombre: "Camilo Ruiz", rol: "contador", iniciales: "CR", usuario: "camilo.ruiz", password: DEMO_PASSWORD },
-  { id: "u-valentina", nombre: "Valentina Gómez", rol: "contador", iniciales: "VG", usuario: "valentina.gomez", password: DEMO_PASSWORD },
-  { id: "u-laura", nombre: "Laura Cifuentes", rol: "contador", iniciales: "LC", usuario: "laura.cifuentes", password: DEMO_PASSWORD },
-  { id: "u-andres", nombre: "Andrés Salazar", rol: "auxiliar", iniciales: "AS", usuario: "andres.salazar", password: DEMO_PASSWORD },
-  { id: "u-sebastian", nombre: "Sebastián Morales", rol: "auxiliar", iniciales: "SM", usuario: "sebastian.morales", password: DEMO_PASSWORD },
+  { id: "yesica.zuluaga", nombre: "Yesica Zuluaga", rol: "admin", iniciales: "YZ", usuario: "yesica.zuluaga" },
+  { id: "camilo.ruiz", nombre: "Camilo Ruiz", rol: "contador", iniciales: "CR", usuario: "camilo.ruiz" },
+  { id: "valentina.gomez", nombre: "Valentina Gómez", rol: "contador", iniciales: "VG", usuario: "valentina.gomez" },
+  { id: "laura.cifuentes", nombre: "Laura Cifuentes", rol: "contador", iniciales: "LC", usuario: "laura.cifuentes" },
+  { id: "andres.salazar", nombre: "Andrés Salazar", rol: "auxiliar", iniciales: "AS", usuario: "andres.salazar" },
+  { id: "sebastian.morales", nombre: "Sebastián Morales", rol: "auxiliar", iniciales: "SM", usuario: "sebastian.morales" },
 ];
 
 export const clientesSeed: Cliente[] = [
@@ -55,7 +57,7 @@ export const clientesSeed: Cliente[] = [
     regimen: "Régimen ordinario, responsable de IVA",
     contactoNombre: "Marcela Uribe",
     contactoTelefono: "+57 300 555 1122",
-    contadorId: "u-camilo",
+    contadorId: "camilo.ruiz",
     proximoVencimiento: "Declaración de IVA — 28 ago",
     vencimientoDias: 6,
     documentosPendientes: ["Certificado bancario julio", "Soportes retención en la fuente"],
@@ -72,7 +74,7 @@ export const clientesSeed: Cliente[] = [
     regimen: "Régimen simple de tributación",
     contactoNombre: "Jorge Peláez",
     contactoTelefono: "+57 301 442 8890",
-    contadorId: "u-valentina",
+    contadorId: "valentina.gomez",
     proximoVencimiento: "Pago bimestral régimen simple — 25 ago",
     vencimientoDias: 3,
     documentosPendientes: ["Extractos bancarios agosto"],
@@ -89,7 +91,7 @@ export const clientesSeed: Cliente[] = [
     regimen: "Régimen ordinario, gran contribuyente",
     contactoNombre: "Dra. Paula Nieto",
     contactoTelefono: "+57 312 678 2201",
-    contadorId: "u-camilo",
+    contadorId: "camilo.ruiz",
     proximoVencimiento: "Autorretención de renta — 30 ago",
     vencimientoDias: 8,
     documentosPendientes: [],
@@ -106,7 +108,7 @@ export const clientesSeed: Cliente[] = [
     regimen: "Régimen simple de tributación",
     contactoNombre: "Esperanza Molina",
     contactoTelefono: "+57 304 221 9087",
-    contadorId: "u-laura",
+    contadorId: "laura.cifuentes",
     proximoVencimiento: "Pago bimestral régimen simple — 25 ago",
     vencimientoDias: 3,
     documentosPendientes: ["Facturación de caja agosto", "Planilla seguridad social"],
@@ -123,7 +125,7 @@ export const clientesSeed: Cliente[] = [
     regimen: "Régimen ordinario, responsable de IVA",
     contactoNombre: "Iván Zapata",
     contactoTelefono: "+57 315 990 4432",
-    contadorId: "u-valentina",
+    contadorId: "valentina.gomez",
     proximoVencimiento: "Información exógena — 5 sep",
     vencimientoDias: 14,
     documentosPendientes: ["Contratos de obra firmados", "Detalle de proveedores"],
@@ -139,7 +141,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-1",
     clienteId: "c-textiles",
-    contadorId: "u-camilo",
+    contadorId: "camilo.ruiz",
     titulo: "Radicar declaración de IVA bimestral",
     fechaLimite: "Hoy, 5:00 p. m.",
     estado: "pendiente",
@@ -147,7 +149,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-2",
     clienteId: "c-clinica",
-    contadorId: "u-camilo",
+    contadorId: "camilo.ruiz",
     titulo: "Enviar certificado de retención a la clínica",
     fechaLimite: "Hoy, 3:00 p. m.",
     estado: "completada",
@@ -157,7 +159,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-3",
     clienteId: "c-ferreteria",
-    contadorId: "u-valentina",
+    contadorId: "valentina.gomez",
     titulo: "Consolidar extractos bancarios de agosto",
     fechaLimite: "Hoy, 4:30 p. m.",
     estado: "en_progreso",
@@ -165,7 +167,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-4",
     clienteId: "c-constructora",
-    contadorId: "u-valentina",
+    contadorId: "valentina.gomez",
     titulo: "Solicitar contratos de obra firmados",
     fechaLimite: "Mañana, 12:00 p. m.",
     estado: "pendiente",
@@ -173,7 +175,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-5",
     clienteId: "c-restaurante",
-    contadorId: "u-laura",
+    contadorId: "laura.cifuentes",
     titulo: "Recordar a cliente envío de facturación de caja",
     fechaLimite: "Hoy, 2:00 p. m.",
     estado: "pendiente",
@@ -181,7 +183,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-6",
     clienteId: "c-restaurante",
-    contadorId: "u-laura",
+    contadorId: "laura.cifuentes",
     titulo: "Presentar pago bimestral régimen simple",
     fechaLimite: "Hoy, 6:00 p. m.",
     estado: "pendiente",
@@ -189,7 +191,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-8",
     clienteId: "c-textiles",
-    contadorId: "u-andres",
+    contadorId: "andres.salazar",
     titulo: "Escanear y organizar soportes de retención de julio",
     fechaLimite: "Hoy, 4:00 p. m.",
     estado: "pendiente",
@@ -197,7 +199,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-9",
     clienteId: "c-ferreteria",
-    contadorId: "u-sebastian",
+    contadorId: "sebastian.morales",
     titulo: "Cargar extractos bancarios al sistema contable",
     fechaLimite: "Hoy, 3:30 p. m.",
     estado: "pendiente",
@@ -205,7 +207,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-10",
     clienteId: "c-constructora",
-    contadorId: "u-sebastian",
+    contadorId: "sebastian.morales",
     titulo: "Archivar contratos de obra recibidos",
     fechaLimite: "Mañana, 10:00 a. m.",
     estado: "en_progreso",
@@ -213,7 +215,7 @@ export const tareasSeed: Tarea[] = [
   {
     id: "t-7",
     clienteId: "c-textiles",
-    contadorId: "u-camilo",
+    contadorId: "camilo.ruiz",
     titulo: "Actualizar conciliación bancaria",
     fechaLimite: "Ayer, 5:00 p. m.",
     estado: "completada",

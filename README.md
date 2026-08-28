@@ -1,9 +1,10 @@
 # Gerencia Contable & Tributaria (demo)
 
-Sitio comercial + portal interno de seguimiento de tareas y clientes para
-una firma de contadores. Incluye una página pública con embudo de
-captación de clientes y un asistente de IA, además del portal interno
-para el equipo.
+Sitio comercial + portal interno para una firma de contadores. Incluye una
+página pública con embudo de captación de clientes y un asistente de IA,
+un portal interno de seguimiento de tareas y clientes, y una app (PWA,
+instalable en iOS y Android) para que el equipo marque entrada y salida
+con verificación de ubicación GPS.
 
 ## Cómo correrlo en local
 
@@ -70,9 +71,29 @@ Contraseña para todos: `Contable2026`
   portal: alertas de venta cruzada, reporte ejecutivo mensual, y portal
   para que el cliente final suba documentos.
 
-Todos los datos (clientes, tareas, empleados) son ficticios, pensados
-para parecerse a una firma de contadores real. Nada se guarda de forma
-permanente; al recargar la página, los datos vuelven al estado inicial.
+Los datos de clientes y tareas son ficticios (demo, no persisten). Los
+**empleados, sesiones y marcaciones de asistencia sí son reales**, guardados
+en Postgres — ver la sección de abajo.
+
+## App de asistencia (entrada/salida con GPS)
+
+"Marcar asistencia" (visible para todos los roles tras iniciar sesión) pide
+ubicación GPS y registra la hora de entrada/salida, comparando la distancia
+a la oficina configurada en el servidor (`OFFICE_LAT`/`OFFICE_LNG`/
+`OFFICE_RADIUS_METERS`, ver `.env.example`). El gerente gestiona el equipo
+desde "Empleados": crear cuentas (usuario + contraseña), desactivar
+accesos, restablecer contraseñas, y ver las marcaciones de todos.
+
+Es una **PWA instalable**: desde el navegador (Safari en iOS, Chrome en
+Android) → "Agregar a pantalla de inicio" — queda como una app con ícono
+propio, sin pasar por App Store ni Play Store.
+
+Este backend (`server/auth.mjs`, `server/attendance.mjs`,
+`server/employees.mjs`, `server/db.mjs`) usa una base de datos Postgres real
+y solo corre en producción — el servidor de desarrollo local
+(`server/devPlugin.mjs`) no lo incluye, porque no hay una base de datos
+local configurada. Para probarlo hay que hacerlo contra el backend
+desplegado.
 
 ## Despliegue en producción
 
@@ -80,10 +101,12 @@ La arquitectura está dividida en dos partes:
 
 - **Sitio estático** (este build de Vite) → hosting compartido en
   **HostCarriel**, dominio `www.gct.com.co`.
-- **Backend del asistente de IA** (`server/prod.mjs`) → **Railway**,
-  dominio `api.gct.com.co`. Necesita su propia variable de entorno
-  `ANTHROPIC_API_KEY` configurada directamente en el panel de Railway
-  (nunca en este repositorio).
+- **Backend** (`server/prod.mjs`: asistente de IA + auth/asistencia/
+  empleados) → **Railway**, dominio `api.gct.com.co`, con una base de
+  datos Postgres (también en Railway). Variables de entorno configuradas
+  directamente en el panel de Railway (nunca en este repositorio):
+  `ANTHROPIC_API_KEY`, `DATABASE_URL` (se genera sola al vincular la base
+  de datos), `OFFICE_LAT`, `OFFICE_LNG`, `OFFICE_RADIUS_METERS`.
 
 El sitio estático se publica automáticamente con
 [.github/workflows/deploy.yml](.github/workflows/deploy.yml): cada `git

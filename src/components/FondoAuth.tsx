@@ -1,32 +1,21 @@
+import logo from "../assets/logo-mark.png";
+
 // Fondo decorativo compartido por las pantallas de acceso (login y registro).
-// En vez del bg-ink plano de antes, capa varias texturas sutiles para darle
-// cuerpo: grano de papel, una cuadrícula fina tipo hoja contable, el resplandor
-// magenta de marca y el anillo del logo como marca de agua gigante.
+// Un fondo oscuro con textura de grano muy sutil, el resplandor magenta de
+// marca y el propio isotipo de GCT como marca de agua gigante — nada de
+// formas inventadas que no se parezcan al logo real.
 export function FondoAuth() {
   return (
     <>
-      {/* Grano de papel — capa de textura fina, casi imperceptible, que le quita
-          la planitud al negro sólido */}
-      <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.05] mix-blend-overlay" aria-hidden>
+      {/* Grano de papel — textura fina, casi imperceptible, que le quita
+          la planitud al negro sólido sin ensuciar el fondo */}
+      <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.035] mix-blend-overlay" aria-hidden>
         <filter id="granoAuth">
           <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={2} stitchTiles="stitch" />
           <feColorMatrix type="saturate" values="0" />
         </filter>
         <rect width="100%" height="100%" filter="url(#granoAuth)" />
       </svg>
-
-      {/* Cuadrícula fina, como el papel milimetrado de una hoja de trabajo contable */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(247,244,239,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(247,244,239,0.6) 1px, transparent 1px)",
-          backgroundSize: "42px 42px",
-          maskImage: "radial-gradient(ellipse at center, black 0%, transparent 75%)",
-          WebkitMaskImage: "radial-gradient(ellipse at center, black 0%, transparent 75%)",
-        }}
-        aria-hidden
-      />
 
       {/* Resplandores de marca */}
       <div
@@ -38,21 +27,13 @@ export function FondoAuth() {
         aria-hidden
       />
 
-      {/* Anillo del logo, en grande, como marca de agua en la esquina */}
-      <svg
-        viewBox="0 0 200 200"
-        className="pointer-events-none absolute -bottom-24 -right-24 h-[520px] w-[520px] text-paper/[0.06] sm:h-[620px] sm:w-[620px]"
+      {/* El isotipo real de GCT, gigante y tenue, como marca de agua */}
+      <img
+        src={logo}
+        alt=""
         aria-hidden
-      >
-        <path d="M154.2 70.8A62.5 62.5 0 1 0 165 125" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-      </svg>
-      <svg
-        viewBox="0 0 200 200"
-        className="pointer-events-none absolute -left-20 -top-20 hidden h-72 w-72 text-magenta-soft/[0.07] sm:block"
-        aria-hidden
-      >
-        <path d="M154.2 70.8A62.5 62.5 0 1 0 165 125" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
-      </svg>
+        className="pointer-events-none absolute -bottom-28 -right-28 h-[440px] w-[440px] object-contain opacity-[0.07] sm:h-[560px] sm:w-[560px]"
+      />
 
       {/* Viñeta suave para que el ojo se vaya al centro, hacia la tarjeta */}
       <div

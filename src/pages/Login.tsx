@@ -7,6 +7,7 @@ import { rutaInicioPara } from "../lib/rutas";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "../components/Stamp";
 import { CampoAuth } from "../components/CampoAuth";
+import { FondoAuth } from "../components/FondoAuth";
 
 export default function Login() {
   const { iniciarSesion } = useApp();
@@ -36,14 +37,7 @@ export default function Login() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink px-6 py-16 [color-scheme:dark]">
-      <div
-        className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-magenta opacity-20 blur-[110px]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-magenta-soft opacity-10 blur-[100px]"
-        aria-hidden
-      />
+      <FondoAuth />
 
       <div className="relative w-full max-w-sm">
         <Link to="/" className="mb-8 inline-flex items-center gap-1.5 text-xs text-paper/40 transition-colors hover:text-paper/70">

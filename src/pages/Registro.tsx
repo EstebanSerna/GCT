@@ -7,6 +7,7 @@ import { api, ApiError } from "../lib/api";
 import { archivoAFotoBase64 } from "../lib/foto";
 import { rutaInicioPara } from "../lib/rutas";
 import { CampoAuth } from "../components/CampoAuth";
+import { FondoAuth } from "../components/FondoAuth";
 import logo from "../assets/logo-mark.png";
 
 interface Requisito {
@@ -92,6 +93,7 @@ export default function Registro() {
   if (pendienteAprobacion) {
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink px-6 py-16 [color-scheme:dark]">
+        <FondoAuth />
         <div className="relative w-full max-w-sm text-center">
           <CheckCircle2 size={40} className="mx-auto text-folio-green" />
           <h1 className="mt-4 font-display text-xl font-semibold text-white">¡Cuenta registrada!</h1>
@@ -112,14 +114,7 @@ export default function Registro() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink px-6 py-16 [color-scheme:dark]">
-      <div
-        className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-magenta opacity-20 blur-[110px]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-magenta-soft opacity-10 blur-[100px]"
-        aria-hidden
-      />
+      <FondoAuth />
 
       <div className="relative w-full max-w-md">
         <Link to="/portal" className="mb-6 inline-flex items-center gap-1.5 text-xs text-paper/40 hover:text-paper/70">

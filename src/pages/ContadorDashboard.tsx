@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Check, Loader2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Stamp } from "../components/Stamp";
 import { EvidenciaModal } from "../components/EvidenciaModal";
@@ -13,6 +14,7 @@ interface ItemPendiente {
   origen: "obligacion" | "tarea";
   clienteNombre: string;
   clienteId?: string;
+  obligacionId?: string;
   titulo: string;
   tarea?: Tarea;
 }
@@ -28,14 +30,15 @@ function riesgoDe(c: Cliente, hoy: Date): "verde" | "amber" | "rojo" {
 }
 
 export default function ContadorDashboard() {
-  const { usuarioActual, tareas, clientes, completarTarea } = useApp();
+  const { usuarioActual, tareas, clientes, completarTarea, actualizarEstadoObligacion } = useApp();
   const [tareaActiva, setTareaActiva] = useState<Tarea | null>(null);
+  const [guardando, setGuardando] = useState<Set<string>>(new Set());
 
   const hoy = useMemo(() => new Date(), []);
   const mensajes = usuarioActual?.rol === "auxiliar" ? MENSAJES_AUXILIAR : MENSAJES_CONTADOR;
 
   const misClientes = useMemo(
-    () => clientes.filter((c) => c.responsable === usuarioActual?.nombre),
+    () => clientes.filter((c) => c.responsableId === String(usuarioActual?.dbId)),
     [clientes, usuarioActual]
   );
 
@@ -57,7 +60,7 @@ export default function ContadorDashboard() {
     const deObligaciones: ItemPendiente[] = misClientes.flatMap((c) =>
       c.obligaciones
         .filter((o) => o.estado === "pendiente")
-        .map((o) => ({ fecha: o.vencimiento, origen: "obligacion" as const, clienteNombre: c.nombre, clienteId: c.id, titulo: o.tipo }))
+        .map((o) => ({ fecha: o.vencimiento, origen: "obligacion" as const, clienteNombre: c.nombre, clienteId: c.id, obligacionId: o.id, titulo: o.tipo }))
     );
     const deTareas: ItemPendiente[] = misTareas
       .filter((t) => t.estado !== "completada")
@@ -103,7 +106,7 @@ export default function ContadorDashboard() {
             No tienes pendientes por ahora.
           </p>
         ) : (
-          pendientes.map((item, i) => {
+          pendientes.map((item) => {
             if (item.origen === "tarea" && item.tarea) {
               const t = item.tarea;
               return (
@@ -131,23 +134,42 @@ export default function ContadorDashboard() {
 
             const Icono = iconoObligacion(item.titulo);
             const dias = diasEntreFechas(hoy, item.fecha);
+            const obligacionId = item.obligacionId!;
+            const seEstaGuardando = guardando.has(obligacionId);
             return (
-              <Link
-                key={`o-${item.clienteId}-${i}`}
-                to={`/clientes/${item.clienteId}`}
-                className="flex items-center gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-4 transition-colors hover:border-magenta/40 sm:px-5"
+              <div
+                key={`o-${obligacionId}`}
+                className="flex items-center gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-4 sm:px-5"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-magenta/10 text-magenta-deep">
-                  <Icono size={16} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-magenta-deep">{item.clienteNombre}</p>
-                  <p className="mt-0.5 truncate font-medium text-ink">{item.titulo}</p>
-                  <p className="mt-1 font-mono text-[11px] text-ash">
-                    {formatoFechaCorta(item.fecha)} · {etiquetaTiempo(dias)}
-                  </p>
-                </div>
-              </Link>
+                <Link to={`/clientes/${item.clienteId}`} className="flex min-w-0 flex-1 items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-magenta/10 text-magenta-deep">
+                    <Icono size={16} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-magenta-deep">{item.clienteNombre}</p>
+                    <p className="mt-0.5 truncate font-medium text-ink">{item.titulo}</p>
+                    <p className="mt-1 font-mono text-[11px] text-ash">
+                      {formatoFechaCorta(item.fecha)} · {etiquetaTiempo(dias)}
+                    </p>
+                  </div>
+                </Link>
+                <button
+                  disabled={seEstaGuardando}
+                  onClick={async () => {
+                    setGuardando((prev) => new Set(prev).add(obligacionId));
+                    await actualizarEstadoObligacion(obligacionId, "presentado");
+                    setGuardando((prev) => {
+                      const next = new Set(prev);
+                      next.delete(obligacionId);
+                      return next;
+                    });
+                  }}
+                  className="flex shrink-0 items-center gap-1.5 rounded-md bg-ink px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-magenta disabled:opacity-60"
+                >
+                  {seEstaGuardando ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  Presentado
+                </button>
+              </div>
             );
           })
         )}

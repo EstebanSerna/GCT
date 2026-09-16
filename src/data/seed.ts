@@ -40,7 +40,7 @@ export interface Cliente {
   ciudad: string;
   contacto: ContactoCliente;
   clienteDesde: string; // ISO yyyy-mm-dd — aniversario como cliente de GCT
-  responsable: string; // nombre del contador/auxiliar encargado de la cuenta
+  responsableId: string | null; // id del empleado (contador/auxiliar) encargado de la cuenta
   honorariosMensuales: number; // COP
   estadoCartera: EstadoCartera;
   notas: string; // preferencias y detalles personales, para un trato cercano

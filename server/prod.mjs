@@ -20,6 +20,7 @@ import {
 } from "./auth.mjs";
 import { createMarkHandler, getTodayHandler, getAllHandler } from "./attendance.mjs";
 import { listHandler, listEquipoHandler, createHandler, updateHandler, deleteHandler } from "./employees.mjs";
+import { listHandler as listClientesHandler, actualizarObligacionHandler } from "./clientes.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "..", "dist");
@@ -100,6 +101,12 @@ api.delete("/employees/:id", requireSuperAdmin, deleteHandler);
 // Vista liviana del equipo activo, para la gerente (reportes, sin datos
 // sensibles de más).
 api.get("/employees/equipo", requireGerenteOAbove, listEquipoHandler);
+
+// Clientes: cada quien ve los suyos (o todos, si es gerente/super admin) —
+// el filtro por rol vive dentro del handler porque depende de datos (el
+// responsable_id de cada cliente), no solo del rol en sí.
+api.get("/clientes", requireAuth, listClientesHandler);
+api.patch("/obligaciones/:id", requireAuth, actualizarObligacionHandler);
 
 app.use("/api", api);
 

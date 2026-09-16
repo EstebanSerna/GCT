@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Search, ChevronLeft, CalendarClock, Cake, PartyPopper, Phone, Mail, Building2, IdCard, UserCircle2, Wallet } from "lucide-react";
+import { Search, ChevronLeft, CalendarClock, Cake, PartyPopper, Phone, Mail, Building2, IdCard, UserCircle2, Wallet, Loader2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Stamp } from "../components/Stamp";
-import type { Cliente, Obligacion } from "../data/seed";
+import type { Cliente, Obligacion, EstadoObligacion } from "../data/seed";
 import { iconoObligacion, ESTADO_INFO, formatoFechaCorta, diasEntreFechas, etiquetaTiempo } from "../lib/obligaciones";
 import { proximaFechaAnual, aniosDesde, diaMesCorto, formatoPesos, CARTERA_INFO } from "../lib/relacion";
 
@@ -38,7 +38,7 @@ export default function Clientes() {
   // de clientes que no les corresponden.
   const misClientes = useMemo(() => {
     if (!usuarioActual || usuarioActual.rol === "gerente" || usuarioActual.rol === "super_admin") return clientes;
-    return clientes.filter((c) => c.responsable === usuarioActual.nombre);
+    return clientes.filter((c) => c.responsableId === String(usuarioActual.dbId));
   }, [clientes, usuarioActual]);
 
   const seleccionado = id ? misClientes.find((c) => c.id === id) ?? null : null;
@@ -188,12 +188,14 @@ export default function Clientes() {
 }
 
 function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Date; onVolver: () => void }) {
+  const { usuarios, actualizarEstadoObligacion } = useApp();
   const proxima = proximaPendiente(cliente);
   const pendientes = cliente.obligaciones.filter((o) => o.estado === "pendiente").length;
   const cumple = proximaFechaAnual(cliente.contacto.fechaNacimiento, hoy);
   const aniversario = proximaFechaAnual(cliente.clienteDesde, hoy);
   const aniosCliente = aniosDesde(cliente.clienteDesde, hoy);
   const cartera = CARTERA_INFO[cliente.estadoCartera];
+  const nombreResponsable = usuarios.find((u) => u.dbId !== undefined && String(u.dbId) === cliente.responsableId)?.nombre ?? "Sin asignar";
 
   const porMes = useMemo(() => {
     const grupos = new Map<string, Obligacion[]>();
@@ -261,7 +263,7 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
           <p className="mt-1.5 text-sm font-medium text-ink">
             Cliente desde {formatoFechaCorta(cliente.clienteDesde)} · {aniosCliente} año{aniosCliente === 1 ? "" : "s"}
           </p>
-          <p className="mt-1 text-xs text-ash">Responsable: {cliente.responsable}</p>
+          <p className="mt-1 text-xs text-ash">Responsable: {nombreResponsable}</p>
           {aniversario.dias <= DIAS_SPOTLIGHT && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-magenta-deep">
               <PartyPopper size={12} />
@@ -313,7 +315,7 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
             <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ash">{etiquetaMes(clave)}</p>
             <div className="flex flex-col gap-2.5">
               {obligaciones.map((o) => (
-                <ObligacionCard key={o.id} obligacion={o} hoy={hoy} />
+                <ObligacionCard key={o.id} obligacion={o} hoy={hoy} onCambiarEstado={actualizarEstadoObligacion} />
               ))}
             </div>
           </div>
@@ -323,10 +325,31 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
   );
 }
 
-function ObligacionCard({ obligacion, hoy }: { obligacion: Obligacion; hoy: Date }) {
+const OPCIONES_ESTADO: EstadoObligacion[] = ["pendiente", "presentado", "pagado"];
+
+function ObligacionCard({
+  obligacion,
+  hoy,
+  onCambiarEstado,
+}: {
+  obligacion: Obligacion;
+  hoy: Date;
+  onCambiarEstado: (obligacionId: string, estado: EstadoObligacion) => Promise<{ ok: boolean; error?: string }>;
+}) {
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const Icono = iconoObligacion(obligacion.tipo);
   const estado = ESTADO_INFO[obligacion.estado];
   const dias = diasEntreFechas(hoy, obligacion.vencimiento);
+
+  async function cambiar(nuevoEstado: EstadoObligacion) {
+    if (nuevoEstado === obligacion.estado) return;
+    setError(null);
+    setGuardando(true);
+    const resultado = await onCambiarEstado(obligacion.id, nuevoEstado);
+    setGuardando(false);
+    if (!resultado.ok) setError(resultado.error ?? "No se pudo guardar el cambio.");
+  }
 
   return (
     <div className="flex items-start gap-3 rounded-xl border border-ink/10 bg-white/60 p-4">
@@ -334,19 +357,34 @@ function ObligacionCard({ obligacion, hoy }: { obligacion: Obligacion; hoy: Date
         <Icono size={16} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
           <h3 className="font-display text-[15px] font-semibold text-ink">{obligacion.tipo}</h3>
-          <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border-[1.5px] ${estado.ring} bg-white/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${estado.text}`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${estado.dot}`} /> {estado.label}
-          </span>
+          <div className="relative shrink-0">
+            <select
+              value={obligacion.estado}
+              disabled={guardando}
+              onChange={(e) => cambiar(e.target.value as EstadoObligacion)}
+              className={`appearance-none rounded-full border-[1.5px] ${estado.ring} bg-white/70 py-0.5 pl-5 pr-2 font-mono text-[10px] uppercase tracking-wide ${estado.text} disabled:opacity-60`}
+            >
+              {OPCIONES_ESTADO.map((op) => (
+                <option key={op} value={op}>
+                  {ESTADO_INFO[op].label}
+                </option>
+              ))}
+            </select>
+            {guardando ? (
+              <Loader2 size={9} className="absolute left-2 top-1/2 -translate-y-1/2 animate-spin text-ash" />
+            ) : (
+              <span className={`absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${estado.dot}`} />
+            )}
+          </div>
         </div>
         <p className="mt-0.5 font-mono text-xs font-medium text-magenta-deep">
           {formatoFechaCorta(obligacion.vencimiento)}
           {obligacion.estado === "pendiente" && <> · {etiquetaTiempo(dias)}</>}
         </p>
         <p className="mt-1.5 text-xs text-ash">{obligacion.obligacion}</p>
+        {error && <p className="mt-1.5 text-xs text-folio-red">{error}</p>}
       </div>
     </div>
   );

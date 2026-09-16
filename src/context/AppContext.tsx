@@ -1,11 +1,8 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { usuarios, tareasSeed } from "../data/seed";
-import type { Usuario, Cliente, Tarea } from "../data/seed";
-// TODO: reemplazar por datos reales (API /clientes respaldada en Postgres)
-// una vez aprobado el diseño de la sección Clientes — ver src/data/clientesDemo.ts
-import { clientesDemo } from "../data/clientesDemo";
-import { api, getToken, type ApiEmpleado, type Rol } from "../lib/api";
+import type { Usuario, Cliente, Tarea, EstadoObligacion } from "../data/seed";
+import { api, getToken, type ApiEmpleado, type ApiCliente, type Rol } from "../lib/api";
 
 // Convierte el empleado que devuelve el backend real al formato "Usuario"
 // que usa el resto de la app. El "id" es el mismo correo con el que inició
@@ -27,6 +24,10 @@ function aUsuario(emp: ApiEmpleado): Usuario {
   };
 }
 
+function aCliente(c: ApiCliente): Cliente {
+  return c;
+}
+
 interface AppState {
   usuarioActual: Usuario | null;
   cargandoSesion: boolean;
@@ -35,6 +36,8 @@ interface AppState {
   iniciarSesionDesdeRegistro: (employee: ApiEmpleado) => void;
   cerrarSesion: () => void;
   clientes: Cliente[];
+  cargandoClientes: boolean;
+  actualizarEstadoObligacion: (obligacionId: string, estado: EstadoObligacion) => Promise<{ ok: boolean; error?: string }>;
   tareas: Tarea[];
   completarTarea: (tareaId: string, archivo: File) => void;
   usuarios: Usuario[];
@@ -45,8 +48,20 @@ const AppContext = createContext<AppState | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [usuarioActual, setUsuarioActual] = useState<Usuario | null>(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
-  const [clientes] = useState<Cliente[]>(clientesDemo);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [cargandoClientes, setCargandoClientes] = useState(false);
   const [tareas, setTareas] = useState<Tarea[]>(tareasSeed);
+
+  const cargarClientes = useCallback(() => {
+    setCargandoClientes(true);
+    api
+      .clientes()
+      .then(({ clientes: recibidos }) => setClientes(recibidos.map(aCliente)))
+      .catch(() => {
+        /* sin sesión válida o sin backend (dev local) — se queda vacío */
+      })
+      .finally(() => setCargandoClientes(false));
+  }, []);
 
   // Al cargar la app, si hay un token guardado, valida la sesión contra el
   // servidor en vez de pedir usuario/contraseña de nuevo cada vez.
@@ -58,17 +73,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     api
       .me()
-      .then(({ employee }) => setUsuarioActual(aUsuario(employee)))
+      .then(({ employee }) => {
+        setUsuarioActual(aUsuario(employee));
+        cargarClientes();
+      })
       .catch(() => {
         /* token vencido o inválido — se queda sin sesión */
       })
       .finally(() => setCargandoSesion(false));
-  }, []);
+  }, [cargarClientes]);
 
   async function iniciarSesion(email: string, password: string) {
     try {
       const employee = await api.login(email, password);
       setUsuarioActual(aUsuario(employee));
+      cargarClientes();
       return { ok: true, rol: employee.rol as Rol };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : "No se pudo iniciar sesión." };
@@ -77,11 +96,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   function iniciarSesionDesdeRegistro(employee: ApiEmpleado) {
     setUsuarioActual(aUsuario(employee));
+    cargarClientes();
   }
 
   function cerrarSesion() {
     setUsuarioActual(null);
+    setClientes([]);
     void api.logout();
+  }
+
+  async function actualizarEstadoObligacion(obligacionId: string, estado: EstadoObligacion) {
+    const anterior = clientes;
+    // Optimista: se ve el cambio de inmediato, y se revierte si el
+    // servidor lo rechaza (por ejemplo, si ya no tiene ese cliente asignado).
+    setClientes((prev) =>
+      prev.map((c) => ({
+        ...c,
+        obligaciones: c.obligaciones.map((o) => (o.id === obligacionId ? { ...o, estado } : o)),
+      }))
+    );
+    try {
+      await api.actualizarObligacion(obligacionId, estado);
+      return { ok: true };
+    } catch (err) {
+      setClientes(anterior);
+      return { ok: false, error: err instanceof Error ? err.message : "No se pudo actualizar." };
+    }
   }
 
   function completarTarea(tareaId: string, archivo: File) {
@@ -112,6 +152,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         iniciarSesionDesdeRegistro,
         cerrarSesion,
         clientes,
+        cargandoClientes,
+        actualizarEstadoObligacion,
         tareas,
         completarTarea,
         usuarios,

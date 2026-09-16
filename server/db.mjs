@@ -72,6 +72,37 @@ const MIGRATIONS = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_attendance_employee_time
     ON attendance_records (employee_id, registrado_en DESC)`,
+  `CREATE TABLE IF NOT EXISTS clientes (
+    id SERIAL PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    nit TEXT,
+    tipo_persona TEXT CHECK (tipo_persona IN ('natural','juridica')),
+    regimen TEXT,
+    ciudad TEXT,
+    contacto_nombre TEXT,
+    contacto_telefono TEXT,
+    contacto_correo TEXT,
+    contacto_fecha_nacimiento DATE,
+    cliente_desde DATE,
+    responsable_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+    honorarios_mensuales NUMERIC,
+    estado_cartera TEXT NOT NULL DEFAULT 'al_dia' CHECK (estado_cartera IN ('al_dia','en_mora')),
+    notas TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS obligaciones (
+    id SERIAL PRIMARY KEY,
+    cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    obligacion TEXT NOT NULL,
+    vencimiento DATE NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','presentado','pagado')),
+    actualizado_por INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+    actualizado_en TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_obligaciones_cliente ON obligaciones (cliente_id, vencimiento)`,
+  `CREATE INDEX IF NOT EXISTS idx_clientes_responsable ON clientes (responsable_id)`,
 ];
 
 export async function migrate({ logger = console } = {}) {

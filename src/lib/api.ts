@@ -35,6 +35,33 @@ export interface RegistroAsistenciaAdmin extends RegistroAsistencia {
   rol: Rol;
 }
 
+export type EstadoObligacion = "pendiente" | "presentado" | "pagado";
+
+export interface ApiObligacion {
+  id: string;
+  clienteId: string;
+  tipo: string;
+  obligacion: string;
+  vencimiento: string;
+  estado: EstadoObligacion;
+}
+
+export interface ApiCliente {
+  id: string;
+  nombre: string;
+  nit: string;
+  tipoPersona: "natural" | "juridica";
+  regimen: string;
+  ciudad: string;
+  contacto: { nombre: string; telefono: string; correo: string; fechaNacimiento: string };
+  clienteDesde: string;
+  responsableId: string | null;
+  honorariosMensuales: number;
+  estadoCartera: "al_dia" | "en_mora";
+  notas: string;
+  obligaciones: ApiObligacion[];
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -141,6 +168,18 @@ export const api = {
 
   eliminarEmpleado(id: number) {
     return request<{ ok: true }>(`/api/employees/${id}`, { method: "DELETE" });
+  },
+
+  /** Gerente/super admin: todos los clientes. Contador/auxiliar: solo los que tiene asignados. */
+  clientes() {
+    return request<{ clientes: ApiCliente[] }>("/api/clientes");
+  },
+
+  actualizarObligacion(id: string, estado: EstadoObligacion) {
+    return request<{ obligacion: ApiObligacion }>(`/api/obligaciones/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ estado }),
+    });
   },
 };
 

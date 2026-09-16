@@ -35,10 +35,19 @@ export default function EquipoDashboard() {
       .catch((err) => setError(err instanceof ApiError ? err.message : "No se pudo cargar el equipo."));
   }, []);
 
+  // `clientes` del contexto ya trae toda la firma (la líder de equipo ve
+  // todo, igual que gerencia) — acá se recorta solo a los de su equipo,
+  // porque este panel es sobre su equipo, no sobre toda la firma.
+  const clientesEquipo = useMemo(() => {
+    if (!equipo) return [];
+    const idsEquipo = new Set(equipo.map((emp) => String(emp.id)));
+    return clientes.filter((c) => c.responsableId !== null && idsEquipo.has(c.responsableId));
+  }, [clientes, equipo]);
+
   const porPersona = useMemo(() => {
     if (!equipo) return [];
     return equipo.map((emp) => {
-      const susClientes = clientes.filter((c) => c.responsableId === String(emp.id));
+      const susClientes = clientesEquipo.filter((c) => c.responsableId === String(emp.id));
       const riesgos = susClientes.map((c) => riesgoDe(c, hoy));
       return {
         emp,
@@ -48,11 +57,11 @@ export default function EquipoDashboard() {
         porRevisar: riesgos.filter((r) => r === "amber").length,
       };
     });
-  }, [equipo, clientes, hoy]);
+  }, [equipo, clientesEquipo, hoy]);
 
   const totalEnRiesgo = porPersona.reduce((n, p) => n + p.enRiesgo, 0);
   const totalPorRevisar = porPersona.reduce((n, p) => n + p.porRevisar, 0);
-  const totalAlDia = clientes.length - totalEnRiesgo - totalPorRevisar;
+  const totalAlDia = clientesEquipo.length - totalEnRiesgo - totalPorRevisar;
 
   async function reasignar(clienteId: string, nuevoResponsableId: number) {
     setOcupado(clienteId);
@@ -65,7 +74,7 @@ export default function EquipoDashboard() {
       <p className="font-mono text-[11px] uppercase tracking-wider text-ash">Líder de equipo</p>
       <h1 className="mt-1 font-display text-3xl font-semibold text-ink">Cómo va tu equipo hoy</h1>
       <p className="mt-2 text-sm text-ash">
-        {equipo?.length ?? 0} personas a tu cargo · {clientes.length} clientes en total
+        {equipo?.length ?? 0} personas a tu cargo · {clientesEquipo.length} clientes en total
       </p>
 
       <div className="mt-6">
@@ -135,14 +144,14 @@ export default function EquipoDashboard() {
       </section>
 
       {/* Reasignar clientes */}
-      {equipo && equipo.length > 0 && clientes.length > 0 && (
+      {equipo && equipo.length > 0 && clientesEquipo.length > 0 && (
         <section className="mt-10 mb-6">
           <h2 className="flex items-center gap-1.5 font-display text-lg font-semibold text-ink">
             <ArrowRightLeft size={16} /> Repartir clientes
           </h2>
           <p className="mt-1 text-sm text-ash">Cambia a quién le corresponde cada cliente, para equilibrar la carga.</p>
           <div className="mt-4 flex flex-col gap-2">
-            {clientes.map((c) => (
+            {clientesEquipo.map((c) => (
               <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-3">
                 <Link to={`/clientes/${c.id}`} className="min-w-0 truncate text-sm font-medium text-ink hover:text-magenta-deep">
                   {c.nombre}

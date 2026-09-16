@@ -35,26 +35,17 @@ function publicObligacion(row) {
   };
 }
 
-/** GET /api/clientes — gerente/super_admin: todos. líder de equipo: los de su
- * equipo (y los suyos propios, si tuviera). contador/auxiliar: solo los suyos. */
+/** GET /api/clientes — gerente/super_admin/líder de equipo: todos (la líder
+ * de equipo necesita visión completa de la firma, no solo de su equipo).
+ * contador/auxiliar: solo los suyos. */
 export async function listHandler(req, res) {
   const db = getPool();
   const rol = req.employee.rol;
 
-  let clientesQuery;
-  if (rol === "gerente" || rol === "super_admin") {
-    clientesQuery = await db.query("SELECT * FROM clientes ORDER BY nombre ASC");
-  } else if (rol === "lider_equipo") {
-    clientesQuery = await db.query(
-      `SELECT c.* FROM clientes c
-       WHERE c.responsable_id = $1
-          OR c.responsable_id IN (SELECT id FROM employees WHERE coordinador_id = $1)
-       ORDER BY c.nombre ASC`,
-      [req.employee.id]
-    );
-  } else {
-    clientesQuery = await db.query("SELECT * FROM clientes WHERE responsable_id = $1 ORDER BY nombre ASC", [req.employee.id]);
-  }
+  const clientesQuery =
+    rol === "gerente" || rol === "super_admin" || rol === "lider_equipo"
+      ? await db.query("SELECT * FROM clientes ORDER BY nombre ASC")
+      : await db.query("SELECT * FROM clientes WHERE responsable_id = $1 ORDER BY nombre ASC", [req.employee.id]);
 
   const clienteIds = clientesQuery.rows.map((r) => r.id);
   const obligacionesQuery =

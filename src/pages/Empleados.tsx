@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { UserPlus, ShieldCheck, ShieldOff, KeyRound, Download, AlertTriangle, Trash2, CheckCircle2 } from "lucide-react";
+import { UserPlus, ShieldCheck, ShieldOff, KeyRound, Download, AlertTriangle, Trash2, CheckCircle2, UserCog } from "lucide-react";
 import { api, ApiError, type ApiEmpleado, type Rol, type RegistroAsistenciaAdmin } from "../lib/api";
 import { agruparPorDiaYEmpleado, descargarCsv } from "../lib/reporte";
 import { formatoNombre } from "../lib/texto";
+import { useApp } from "../context/AppContext";
 
 type RolAsignable = Exclude<Rol, "super_admin">;
 
@@ -197,6 +198,7 @@ function FilaEmpleado({
   onEliminado: (id: number) => void;
 }) {
   const [ocupado, setOcupado] = useState(false);
+  const [mostrarCoordinador, setMostrarCoordinador] = useState(false);
 
   async function toggleActivo() {
     setOcupado(true);
@@ -270,28 +272,41 @@ function FilaEmpleado({
           <p className="truncate text-sm font-medium text-ink">{formatoNombre(emp.nombre)}</p>
           <p className="truncate text-xs text-ash">
             {emp.email} {!emp.activo && "· inactivo"}
-            {(emp.rol === "contador" || emp.rol === "auxiliar") && emp.coordinadorId && (
-              <> · coordinado por {formatoNombre(lideresDisponibles.find((l) => l.id === emp.coordinadorId)?.nombre ?? "—")}</>
-            )}
           </p>
         </div>
       </div>
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-        {(emp.rol === "contador" || emp.rol === "auxiliar") && (
-          <select
-            value={emp.coordinadorId ?? ""}
-            onChange={(e) => cambiarCoordinador(e.target.value ? Number(e.target.value) : null)}
-            disabled={ocupado}
-            className="rounded-md border border-ash-light/50 bg-white px-2 py-1.5 text-xs text-ink outline-none focus:border-magenta disabled:opacity-50"
-            title="Líder de equipo que coordina a esta persona"
-          >
-            <option value="">Sin líder asignado</option>
-            {lideresDisponibles.map((l) => (
-              <option key={l.id} value={l.id}>
-                {formatoNombre(l.nombre)}
-              </option>
-            ))}
-          </select>
+        {(emp.rol === "contador" || emp.rol === "auxiliar") && lideresDisponibles.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setMostrarCoordinador((v) => !v)}
+              className="rounded-md p-2 text-ash hover:bg-ink/5 hover:text-magenta-deep"
+              title="Asignar líder de equipo"
+            >
+              <UserCog size={15} />
+            </button>
+            {mostrarCoordinador && (
+              <select
+                value={emp.coordinadorId ?? ""}
+                onChange={(e) => {
+                  cambiarCoordinador(e.target.value ? Number(e.target.value) : null);
+                  setMostrarCoordinador(false);
+                }}
+                onBlur={() => setMostrarCoordinador(false)}
+                disabled={ocupado}
+                autoFocus
+                className="absolute right-0 top-full z-10 mt-1 rounded-md border border-ash-light/50 bg-white px-2 py-1.5 text-xs text-ink shadow-md outline-none focus:border-magenta disabled:opacity-50"
+                title="Líder de equipo que coordina a esta persona"
+              >
+                <option value="">Sin líder asignado</option>
+                {lideresDisponibles.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {formatoNombre(l.nombre)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
         )}
         {emp.rol !== "super_admin" && (
           <select
@@ -340,6 +355,7 @@ function FilaEmpleado({
 }
 
 export default function Empleados() {
+  const { usuarioActual } = useApp();
   const [empleados, setEmpleados] = useState<ApiEmpleado[] | null>(null);
   const [registros, setRegistros] = useState<RegistroAsistenciaAdmin[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -357,6 +373,9 @@ export default function Empleados() {
   const pendientes = empleados?.filter((e) => !e.activo) ?? [];
   const activos = empleados?.filter((e) => e.activo) ?? [];
   const lideresDisponibles = activos.filter((e) => e.rol === "lider_equipo");
+  // Tu propia cuenta no se muestra en esta lista — no tiene sentido
+  // gestionarte a ti mismo desde acá.
+  const activosVisibles = activos.filter((e) => e.id !== usuarioActual?.dbId);
 
   function actualizarEnLista(actualizado: ApiEmpleado) {
     setEmpleados((prev) => prev?.map((e) => (e.id === actualizado.id ? actualizado : e)) ?? null);
@@ -410,12 +429,12 @@ export default function Empleados() {
         <div className="mt-4 flex flex-col gap-2.5">
           {empleados === null ? (
             <p className="text-sm text-ash">Cargando...</p>
-          ) : activos.length === 0 ? (
+          ) : activosVisibles.length === 0 ? (
             <p className="rounded-lg border border-dashed border-ash-light px-5 py-6 text-center text-sm text-ash">
               Todavía no hay cuentas activas.
             </p>
           ) : (
-            activos.map((emp) => (
+            activosVisibles.map((emp) => (
               <FilaEmpleado
                 key={emp.id}
                 emp={emp}

@@ -37,6 +37,7 @@ function Rutas() {
       <Route path="/admin" element={<Protegida roles={["gerente", "super_admin"]}><AdminDashboard /></Protegida>} />
       <Route path="/empleados" element={<Protegida roles={["super_admin"]}><Empleados /></Protegida>} />
       <Route path="/clientes" element={<Protegida><Clientes /></Protegida>} />
+      <Route path="/clientes/:id" element={<Protegida><Clientes /></Protegida>} />
       <Route path="/calendario" element={<Protegida><Calendario /></Protegida>} />
     </Routes>
   );

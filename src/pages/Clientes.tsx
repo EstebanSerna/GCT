@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Search, ChevronLeft, CalendarClock, Cake, PartyPopper, Phone, Mail, Building2, IdCard, UserCircle2, Wallet } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Stamp } from "../components/Stamp";
@@ -25,15 +26,26 @@ function riesgoCliente(c: Cliente, hoy: Date): "verde" | "amber" | "rojo" {
 }
 
 export default function Clientes() {
-  const { clientes } = useApp();
-  const [seleccionado, setSeleccionado] = useState<Cliente | null>(null);
+  const { usuarioActual, clientes } = useApp();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [busqueda, setBusqueda] = useState("");
 
   const hoy = useMemo(() => new Date(), []);
 
+  // Gerencia y super admin ven a todos los clientes de la firma; contador/a
+  // y auxiliar solo ven los que tienen asignados — así su panel no se llena
+  // de clientes que no les corresponden.
+  const misClientes = useMemo(() => {
+    if (!usuarioActual || usuarioActual.rol === "gerente" || usuarioActual.rol === "super_admin") return clientes;
+    return clientes.filter((c) => c.responsable === usuarioActual.nombre);
+  }, [clientes, usuarioActual]);
+
+  const seleccionado = id ? misClientes.find((c) => c.id === id) ?? null : null;
+
   const fechasEspeciales = useMemo(() => {
     const eventos: { cliente: Cliente; tipo: "cumpleaños" | "aniversario"; dias: number; detalle: string }[] = [];
-    for (const c of clientes) {
+    for (const c of misClientes) {
       const cumple = proximaFechaAnual(c.contacto.fechaNacimiento, hoy);
       if (cumple.dias <= DIAS_SPOTLIGHT) {
         eventos.push({ cliente: c, tipo: "cumpleaños", dias: cumple.dias, detalle: c.contacto.nombre });
@@ -45,13 +57,13 @@ export default function Clientes() {
       }
     }
     return eventos.sort((a, b) => a.dias - b.dias);
-  }, [clientes, hoy]);
+  }, [misClientes, hoy]);
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     const lista = q
-      ? clientes.filter((c) => c.nombre.toLowerCase().includes(q) || c.nit.includes(q))
-      : clientes;
+      ? misClientes.filter((c) => c.nombre.toLowerCase().includes(q) || c.nit.includes(q))
+      : misClientes;
     return [...lista].sort((a, b) => {
       const pa = proximaPendiente(a);
       const pb = proximaPendiente(b);
@@ -60,22 +72,23 @@ export default function Clientes() {
       if (!pb) return -1;
       return pa.vencimiento.localeCompare(pb.vencimiento);
     });
-  }, [clientes, busqueda]);
+  }, [misClientes, busqueda]);
 
   if (seleccionado) {
-    return <DetalleCliente cliente={seleccionado} hoy={hoy} onVolver={() => setSeleccionado(null)} />;
+    return <DetalleCliente cliente={seleccionado} hoy={hoy} onVolver={() => navigate("/clientes")} />;
   }
 
-  const totalPendientes = clientes.reduce(
+  const esPropio = usuarioActual?.rol === "contador" || usuarioActual?.rol === "auxiliar";
+  const totalPendientes = misClientes.reduce(
     (n, c) => n + c.obligaciones.filter((o) => o.estado === "pendiente").length,
     0
   );
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8 sm:py-10">
-      <h1 className="font-display text-3xl font-semibold text-ink">Clientes de la firma</h1>
+      <h1 className="font-display text-3xl font-semibold text-ink">{esPropio ? "Mis clientes" : "Clientes de la firma"}</h1>
       <p className="mt-2 text-sm text-ash">
-        {clientes.length} clientes · {totalPendientes} obligaciones tributarias pendientes
+        {misClientes.length} clientes · {totalPendientes} obligaciones tributarias pendientes
       </p>
 
       {fechasEspeciales.length > 0 && (
@@ -87,7 +100,7 @@ export default function Clientes() {
             {fechasEspeciales.map((ev, i) => (
               <button
                 key={i}
-                onClick={() => setSeleccionado(ev.cliente)}
+                onClick={() => navigate(`/clientes/${ev.cliente.id}`)}
                 className="flex items-center justify-between gap-3 rounded-lg bg-white/60 px-3.5 py-2.5 text-left transition-colors hover:bg-white"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -125,9 +138,11 @@ export default function Clientes() {
       </div>
 
       <div className="mt-6 flex flex-col gap-2.5">
-        {clientes.length === 0 ? (
+        {misClientes.length === 0 ? (
           <p className="rounded-lg border border-dashed border-ash-light px-5 py-8 text-center text-sm text-ash">
-            Todavía no hay clientes cargados. Cuando se agreguen, sus vencimientos aparecerán acá.
+            {esPropio
+              ? "Todavía no tienes clientes asignados."
+              : "Todavía no hay clientes cargados. Cuando se agreguen, sus vencimientos aparecerán acá."}
           </p>
         ) : filtrados.length === 0 ? (
           <p className="rounded-lg border border-dashed border-ash-light px-5 py-8 text-center text-sm text-ash">
@@ -140,7 +155,7 @@ export default function Clientes() {
             return (
               <button
                 key={c.id}
-                onClick={() => setSeleccionado(c)}
+                onClick={() => navigate(`/clientes/${c.id}`)}
                 className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-4 text-left transition-colors hover:border-magenta/40 sm:px-5"
               >
                 <div className="min-w-0">

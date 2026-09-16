@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "./context/AppContext";
+import { PortalClienteProvider } from "./context/PortalClienteContext";
 import type { Rol } from "./lib/api";
 import { rutaInicioPara } from "./lib/rutas";
 import { Shell } from "./components/Shell";
@@ -13,6 +14,8 @@ import Clientes from "./pages/Clientes";
 import AdminDashboard from "./pages/AdminDashboard";
 import Empleados from "./pages/Empleados";
 import Calendario from "./pages/Calendario";
+import PortalClienteLogin from "./pages/PortalClienteLogin";
+import PortalClienteInicio from "./pages/PortalClienteInicio";
 
 function Protegida({ children, roles }: { children: ReactNode; roles?: Rol[] }) {
   const { usuarioActual, cargandoSesion } = useApp();
@@ -39,6 +42,8 @@ function Rutas() {
       <Route path="/clientes" element={<Protegida><Clientes /></Protegida>} />
       <Route path="/clientes/:id" element={<Protegida><Clientes /></Protegida>} />
       <Route path="/calendario" element={<Protegida><Calendario /></Protegida>} />
+      <Route path="/portal-clientes" element={<PortalClienteLogin />} />
+      <Route path="/portal-clientes/inicio" element={<PortalClienteInicio />} />
     </Routes>
   );
 }
@@ -46,9 +51,11 @@ function Rutas() {
 export default function App() {
   return (
     <AppProvider>
-      <BrowserRouter>
-        <Rutas />
-      </BrowserRouter>
+      <PortalClienteProvider>
+        <BrowserRouter>
+          <Rutas />
+        </BrowserRouter>
+      </PortalClienteProvider>
     </AppProvider>
   );
 }

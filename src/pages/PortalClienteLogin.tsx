@@ -2,18 +2,17 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
-import { useApp } from "../context/AppContext";
-import { rutaInicioPara } from "../lib/rutas";
+import { usePortalCliente } from "../context/PortalClienteContext";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "../components/Stamp";
 import { CampoAuth } from "../components/CampoAuth";
 import { FondoAuth } from "../components/FondoAuth";
 
-export default function Login() {
-  const { iniciarSesion } = useApp();
+export default function PortalClienteLogin() {
+  const { iniciarSesion } = usePortalCliente();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [verPassword, setVerPassword] = useState(false);
   const [cargando, setCargando] = useState(false);
@@ -23,16 +22,15 @@ export default function Login() {
     e.preventDefault();
     setError(null);
     setCargando(true);
+    await new Promise((r) => setTimeout(r, 250));
 
-    const resultado = await iniciarSesion(email.trim(), password);
-
-    if (!resultado.ok || !resultado.rol) {
-      setError(resultado.error ?? "Usuario o contraseña incorrectos.");
+    const resultado = iniciarSesion(correo, password);
+    if (!resultado.ok) {
+      setError(resultado.error ?? "No pudimos verificar tus datos.");
       setCargando(false);
       return;
     }
-
-    navigate(rutaInicioPara(resultado.rol));
+    navigate("/portal-clientes/inicio");
   }
 
   return (
@@ -53,9 +51,9 @@ export default function Login() {
               className="relative h-20 w-20 object-contain drop-shadow-[0_4px_18px_rgba(229,19,111,0.5)]"
             />
           </span>
-          <h1 className="font-display text-2xl font-semibold text-white">Portal de colaboradores</h1>
+          <h1 className="font-display text-2xl font-semibold text-white">Portal de clientes</h1>
           <p className="mt-2 flex items-center gap-1.5 text-sm text-paper/50">
-            <RingMark size={12} /> Ingresa con tu correo y contraseña
+            <RingMark size={12} /> Tu información tributaria, siempre a la mano
           </p>
         </div>
 
@@ -69,8 +67,8 @@ export default function Login() {
             required
             autoFocus
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={correo}
+            onChange={(e) => setCorreo(e.target.value)}
             placeholder="tucorreo@ejemplo.com"
           />
 
@@ -93,20 +91,6 @@ export default function Login() {
               </button>
             }
           />
-
-          <div className="flex items-center justify-between text-xs">
-            <label className="flex items-center gap-1.5 text-paper/45">
-              <input type="checkbox" className="h-3.5 w-3.5 rounded border-paper/30 bg-ink accent-magenta" />
-              Recordarme
-            </label>
-            <button
-              type="button"
-              onClick={() => setError("Contacta al equipo de sistemas para restablecer tu contraseña.")}
-              className="text-paper/45 hover:text-paper/75"
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-          </div>
 
           {error && (
             <p className="rounded-full border border-folio-red/30 bg-folio-red/10 px-4 py-2.5 text-xs text-folio-red">
@@ -132,16 +116,16 @@ export default function Login() {
           </button>
         </form>
 
+        <div className="mt-6 rounded-xl border border-magenta/15 bg-magenta/5 px-4 py-3 text-center text-xs text-paper/50">
+          Vista previa de diseño — probá con{" "}
+          <span className="font-mono text-magenta-soft">marcela.rios@vistahermosa.com.co</span> y contraseña{" "}
+          <span className="font-mono text-magenta-soft">ClienteGCT2026</span>
+        </div>
+
         <p className="mt-6 text-center text-sm text-paper/45">
-          ¿Eres nuevo en el equipo?{" "}
-          <Link to="/registro" className="font-medium text-magenta-soft hover:text-white">
-            Crea tu cuenta
-          </Link>
-        </p>
-        <p className="mt-2 text-center text-sm text-paper/45">
-          ¿Eres cliente de GCT?{" "}
-          <Link to="/portal-clientes" className="font-medium text-magenta-soft hover:text-white">
-            Ingresa a tu portal
+          ¿Eres del equipo de GCT?{" "}
+          <Link to="/portal" className="font-medium text-magenta-soft hover:text-white">
+            Ingresa acá
           </Link>
         </p>
       </div>

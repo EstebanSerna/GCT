@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { usuarios, clientesSeed, tareasSeed } from "../data/seed";
+import { usuarios, tareasSeed } from "../data/seed";
 import type { Usuario, Cliente, Tarea } from "../data/seed";
+// TODO: reemplazar por datos reales (API /clientes respaldada en Postgres)
+// una vez aprobado el diseño de la sección Clientes — ver src/data/clientesDemo.ts
+import { clientesDemo } from "../data/clientesDemo";
 import { api, getToken, type ApiEmpleado, type Rol } from "../lib/api";
 
 // Convierte el empleado que devuelve el backend real al formato "Usuario"
@@ -42,7 +45,7 @@ const AppContext = createContext<AppState | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [usuarioActual, setUsuarioActual] = useState<Usuario | null>(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
-  const [clientes] = useState<Cliente[]>(clientesSeed);
+  const [clientes] = useState<Cliente[]>(clientesDemo);
   const [tareas, setTareas] = useState<Tarea[]>(tareasSeed);
 
   // Al cargar la app, si hay un token guardado, valida la sesión contra el

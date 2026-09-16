@@ -3,10 +3,20 @@ import { Stamp } from "../components/Stamp";
 import { MensajeDelDia } from "../components/MensajeDelDia";
 import { MENSAJES_GERENTE, mensajeDelDia } from "../data/mensajes";
 import type { Cliente } from "../data/seed";
+import { diasEntreFechas, etiquetaTiempo } from "../lib/obligaciones";
 
-function riesgoDe(c: Cliente): "verde" | "amber" | "rojo" {
-  if (c.vencimientoDias <= 3 && c.documentosPendientes.length > 0) return "rojo";
-  if (c.vencimientoDias <= 7 || c.documentosPendientes.length > 0) return "amber";
+function proximaPendiente(c: Cliente) {
+  return [...c.obligaciones]
+    .filter((o) => o.estado === "pendiente")
+    .sort((a, b) => a.vencimiento.localeCompare(b.vencimiento))[0];
+}
+
+function riesgoDe(c: Cliente, hoyDate: Date): "verde" | "amber" | "rojo" {
+  const proxima = proximaPendiente(c);
+  if (!proxima) return "verde";
+  const dias = diasEntreFechas(hoyDate, proxima.vencimiento);
+  if (dias <= 3) return "rojo";
+  if (dias <= 7) return "amber";
   return "verde";
 }
 
@@ -14,12 +24,13 @@ export default function AdminDashboard() {
   const { clientes, tareas, usuarios } = useApp();
   const contadores = usuarios.filter((u) => u.rol !== "gerente");
 
-  const conRiesgo = clientes.map((c) => ({ cliente: c, riesgo: riesgoDe(c) }));
+  const hoyDate = new Date();
+  const conRiesgo = clientes.map((c) => ({ cliente: c, riesgo: riesgoDe(c, hoyDate) }));
   const rojos = conRiesgo.filter((x) => x.riesgo === "rojo");
   const ambar = conRiesgo.filter((x) => x.riesgo === "amber");
   const verdes = conRiesgo.filter((x) => x.riesgo === "verde");
 
-  const hoy = new Date().toLocaleDateString("es-CO", { day: "numeric", month: "long" });
+  const hoy = hoyDate.toLocaleDateString("es-CO", { day: "numeric", month: "long" });
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-8 sm:px-8 sm:py-10">
@@ -57,18 +68,25 @@ export default function AdminDashboard() {
               Todavía no hay clientes cargados.
             </p>
           ) : (
-            [...rojos, ...ambar, ...verdes].map(({ cliente, riesgo }) => (
-              <div
-                key={cliente.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-ink">{cliente.nombre}</p>
-                  <p className="truncate text-xs text-ash">{cliente.proximoVencimiento}</p>
+            [...rojos, ...ambar, ...verdes].map(({ cliente, riesgo }) => {
+              const proxima = proximaPendiente(cliente);
+              return (
+                <div
+                  key={cliente.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{cliente.nombre}</p>
+                    <p className="truncate text-xs text-ash">
+                      {proxima
+                        ? `${proxima.tipo} · ${etiquetaTiempo(diasEntreFechas(hoyDate, proxima.vencimiento))}`
+                        : "Sin obligaciones pendientes"}
+                    </p>
+                  </div>
+                  <Stamp estado={riesgo} compact />
                 </div>
-                <Stamp estado={riesgo} compact />
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </section>

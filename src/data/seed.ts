@@ -11,19 +11,20 @@ export interface Usuario {
   fotoBase64?: string | null;
 }
 
+export type EstadoObligacion = "pendiente" | "presentado" | "pagado";
+
+export interface Obligacion {
+  id: string;
+  tipo: string; // ej. "Retención en la fuente", "Planilla de seguridad social"
+  obligacion: string; // descripción completa, ej. "Retención en la fuente | Marzo de 2026 | Decreto 2229..."
+  vencimiento: string; // fecha ISO yyyy-mm-dd
+  estado: EstadoObligacion;
+}
+
 export interface Cliente {
   id: string;
   nombre: string;
-  nit: string;
-  regimen: string;
-  contactoNombre: string;
-  contactoTelefono: string;
-  contadorId: string;
-  proximoVencimiento: string; // fecha legible
-  vencimientoDias: number; // dias restantes
-  documentosPendientes: string[];
-  historial: { fecha: string; accion: string }[];
-  notas: string;
+  obligaciones: Obligacion[];
 }
 
 export interface Tarea {

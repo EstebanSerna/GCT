@@ -111,7 +111,6 @@ export default function PortalClienteInicio() {
         <h1 className="mt-1 font-display text-3xl font-semibold text-ink">Hola, {c.nombre}</h1>
         <p className="mt-2 max-w-xl text-sm text-ash">
           {c.nit} · {c.regimen} · {c.ciudad}
-          {c.responsable && <> — tu contador/a en GCT es <span className="font-medium text-ink">{c.responsable}</span>.</>}
         </p>
 
         {proxima && (

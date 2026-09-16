@@ -21,9 +21,29 @@ export interface Obligacion {
   estado: EstadoObligacion;
 }
 
+export type TipoPersona = "natural" | "juridica";
+export type EstadoCartera = "al_dia" | "en_mora";
+
+export interface ContactoCliente {
+  nombre: string;
+  telefono: string;
+  correo: string;
+  fechaNacimiento: string; // ISO yyyy-mm-dd — el año es referencial, se usa día y mes
+}
+
 export interface Cliente {
   id: string;
   nombre: string;
+  nit: string;
+  tipoPersona: TipoPersona;
+  regimen: string; // ej. "Régimen ordinario", "Régimen Simple", "Gran Contribuyente"
+  ciudad: string;
+  contacto: ContactoCliente;
+  clienteDesde: string; // ISO yyyy-mm-dd — aniversario como cliente de GCT
+  responsable: string; // nombre del contador/auxiliar encargado de la cuenta
+  honorariosMensuales: number; // COP
+  estadoCartera: EstadoCartera;
+  notas: string; // preferencias y detalles personales, para un trato cercano
   obligaciones: Obligacion[];
 }
 

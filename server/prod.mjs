@@ -2,6 +2,8 @@
 // the employee auth/attendance API on a single Node process — this is
 // what Railway runs.
 import express from "express";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createChatHandler } from "./chatHandler.mjs";
@@ -24,7 +26,47 @@ const distDir = path.join(__dirname, "..", "dist");
 
 const app = express();
 
+// Railway está detrás de un proxy — sin esto, el rate limiter ve la IP
+// del proxy en vez de la del cliente real y limita a todo el tráfico junto.
+app.set("trust proxy", 1);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'", "https://api.gct.com.co"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'self'"],
+      },
+    },
+  })
+);
+
 app.use(corsMiddleware);
+
+// Frena intentos de fuerza bruta contra login/registro: generoso para no
+// estorbar a un usuario real que se equivoca de contraseña, suficiente
+// para descartar un ataque automatizado.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados intentos. Espera unos minutos y vuelve a intentar." },
+});
+const registroLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 6,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados registros desde esta conexión. Intenta más tarde." },
+});
 
 // Registered for POST and OPTIONS — the handler itself answers CORS
 // preflight requests too (kept self-contained: it also runs, unmodified,
@@ -39,8 +81,8 @@ const api = express.Router();
 // base64 dentro del JSON.
 api.use(express.json({ limit: "1mb" }));
 
-api.post("/auth/registro", registroHandler);
-api.post("/auth/login", loginHandler);
+api.post("/auth/registro", registroLimiter, registroHandler);
+api.post("/auth/login", loginLimiter, loginHandler);
 api.post("/auth/logout", requireAuth, logoutHandler);
 api.get("/auth/me", requireAuth, meHandler);
 

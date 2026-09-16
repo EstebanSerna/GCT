@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { usuarios, tareasSeed } from "../data/seed";
 import type { Usuario, Cliente, Tarea, EstadoObligacion } from "../data/seed";
 import { api, getToken, type ApiEmpleado, type ApiCliente, type Rol } from "../lib/api";
+import { formatoNombre } from "../lib/texto";
 
 // Convierte el empleado que devuelve el backend real al formato "Usuario"
 // que usa el resto de la app. El "id" es el mismo correo con el que inició
@@ -12,11 +13,15 @@ import { api, getToken, type ApiEmpleado, type ApiCliente, type Rol } from "../l
 // pantallas — no rompe nada. `emp.rol` solo llega null para cuentas
 // pendientes de aprobar, que el backend nunca deja iniciar sesión — por
 // eso el cast es seguro acá.
+//
+// El nombre se formatea acá una sola vez (mayúscula inicial, resto
+// minúscula) para que toda la app se vea consistente sin importar cómo
+// haya quedado escrito en el registro original.
 function aUsuario(emp: ApiEmpleado): Usuario {
   return {
     id: emp.email,
     dbId: emp.id,
-    nombre: emp.nombre,
+    nombre: formatoNombre(emp.nombre),
     rol: emp.rol as NonNullable<ApiEmpleado["rol"]>,
     iniciales: emp.iniciales,
     usuario: emp.email,
@@ -25,7 +30,7 @@ function aUsuario(emp: ApiEmpleado): Usuario {
 }
 
 function aCliente(c: ApiCliente): Cliente {
-  return c;
+  return { ...c, nombre: formatoNombre(c.nombre), contacto: { ...c.contacto, nombre: formatoNombre(c.contacto.nombre) } };
 }
 
 interface AppState {
@@ -38,6 +43,7 @@ interface AppState {
   clientes: Cliente[];
   cargandoClientes: boolean;
   actualizarEstadoObligacion: (obligacionId: string, estado: EstadoObligacion) => Promise<{ ok: boolean; error?: string }>;
+  reasignarResponsable: (clienteId: string, responsableId: number | null) => Promise<{ ok: boolean; error?: string }>;
   tareas: Tarea[];
   completarTarea: (tareaId: string, archivo: File) => void;
   usuarios: Usuario[];
@@ -124,6 +130,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function reasignarResponsable(clienteId: string, responsableId: number | null) {
+    const anterior = clientes;
+    setClientes((prev) => prev.map((c) => (c.id === clienteId ? { ...c, responsableId: responsableId === null ? null : String(responsableId) } : c)));
+    try {
+      await api.reasignarCliente(clienteId, responsableId);
+      return { ok: true };
+    } catch (err) {
+      setClientes(anterior);
+      return { ok: false, error: err instanceof Error ? err.message : "No se pudo reasignar." };
+    }
+  }
+
   function completarTarea(tareaId: string, archivo: File) {
     setTareas((prev) =>
       prev.map((t) =>
@@ -154,6 +172,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clientes,
         cargandoClientes,
         actualizarEstadoObligacion,
+        reasignarResponsable,
         tareas,
         completarTarea,
         usuarios,

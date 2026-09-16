@@ -51,7 +51,10 @@ const MIGRATIONS = [
   `ALTER TABLE employees ALTER COLUMN activo SET DEFAULT false`,
   `ALTER TABLE employees DROP CONSTRAINT IF EXISTS employees_rol_check`,
   `UPDATE employees SET rol = 'gerente' WHERE rol = 'admin'`,
-  `ALTER TABLE employees ADD CONSTRAINT employees_rol_check CHECK (rol IN ('super_admin','gerente','contador','auxiliar'))`,
+  `ALTER TABLE employees ADD CONSTRAINT employees_rol_check CHECK (rol IN ('super_admin','gerente','lider_equipo','contador','auxiliar'))`,
+  // Quién coordina a quién: un contador/auxiliar apunta al líder de equipo
+  // que lo dirige. Un líder de equipo no tiene por qué tener uno.
+  `ALTER TABLE employees ADD COLUMN IF NOT EXISTS coordinador_id INTEGER REFERENCES employees(id) ON DELETE SET NULL`,
   // --- resto de las tablas ---
   `CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,

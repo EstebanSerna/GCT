@@ -35,14 +35,26 @@ function publicObligacion(row) {
   };
 }
 
-/** GET /api/clientes — gerente/super_admin: todos. contador/auxiliar: solo los suyos (responsable_id). */
+/** GET /api/clientes — gerente/super_admin: todos. líder de equipo: los de su
+ * equipo (y los suyos propios, si tuviera). contador/auxiliar: solo los suyos. */
 export async function listHandler(req, res) {
   const db = getPool();
-  const esGerenteOMas = req.employee.rol === "gerente" || req.employee.rol === "super_admin";
+  const rol = req.employee.rol;
 
-  const clientesQuery = esGerenteOMas
-    ? await db.query("SELECT * FROM clientes ORDER BY nombre ASC")
-    : await db.query("SELECT * FROM clientes WHERE responsable_id = $1 ORDER BY nombre ASC", [req.employee.id]);
+  let clientesQuery;
+  if (rol === "gerente" || rol === "super_admin") {
+    clientesQuery = await db.query("SELECT * FROM clientes ORDER BY nombre ASC");
+  } else if (rol === "lider_equipo") {
+    clientesQuery = await db.query(
+      `SELECT c.* FROM clientes c
+       WHERE c.responsable_id = $1
+          OR c.responsable_id IN (SELECT id FROM employees WHERE coordinador_id = $1)
+       ORDER BY c.nombre ASC`,
+      [req.employee.id]
+    );
+  } else {
+    clientesQuery = await db.query("SELECT * FROM clientes WHERE responsable_id = $1 ORDER BY nombre ASC", [req.employee.id]);
+  }
 
   const clienteIds = clientesQuery.rows.map((r) => r.id);
   const obligacionesQuery =
@@ -65,8 +77,20 @@ export async function listHandler(req, res) {
   res.json({ clientes });
 }
 
+// ¿Puede esta cuenta gestionar (ver/editar) un cliente cuyo responsable es
+// `responsableId` y cuyo responsable reporta a `responsableCoordinadorId`?
+// Gerente/super admin: siempre. Líder de equipo: si el cliente es suyo o de
+// alguien que ella coordina. Contador/auxiliar: solo si es su propio cliente.
+function puedeGestionar(employee, responsableId, responsableCoordinadorId) {
+  if (employee.rol === "gerente" || employee.rol === "super_admin") return true;
+  if (responsableId === employee.id) return true;
+  if (employee.rol === "lider_equipo" && responsableCoordinadorId === employee.id) return true;
+  return false;
+}
+
 /** PATCH /api/obligaciones/:id — cambia el estado (pendiente/presentado/pagado).
- * contador/auxiliar solo pueden tocar obligaciones de clientes que tengan asignados. */
+ * contador/auxiliar solo pueden tocar obligaciones de clientes que tengan asignados;
+ * líder de equipo, las de los clientes de su equipo también. */
 export async function actualizarObligacionHandler(req, res) {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) {
@@ -82,7 +106,11 @@ export async function actualizarObligacionHandler(req, res) {
 
   const db = getPool();
   const { rows } = await db.query(
-    `SELECT o.*, c.responsable_id FROM obligaciones o JOIN clientes c ON c.id = o.cliente_id WHERE o.id = $1`,
+    `SELECT o.*, c.responsable_id, e.coordinador_id AS responsable_coordinador_id
+     FROM obligaciones o
+     JOIN clientes c ON c.id = o.cliente_id
+     LEFT JOIN employees e ON e.id = c.responsable_id
+     WHERE o.id = $1`,
     [id]
   );
   const obligacion = rows[0];
@@ -91,9 +119,7 @@ export async function actualizarObligacionHandler(req, res) {
     return;
   }
 
-  const esGerenteOMas = req.employee.rol === "gerente" || req.employee.rol === "super_admin";
-  const esResponsable = obligacion.responsable_id === req.employee.id;
-  if (!esGerenteOMas && !esResponsable) {
+  if (!puedeGestionar(req.employee, obligacion.responsable_id, obligacion.responsable_coordinador_id)) {
     res.status(403).json({ error: "No tienes permisos para modificar esta obligación." });
     return;
   }
@@ -104,4 +130,59 @@ export async function actualizarObligacionHandler(req, res) {
   );
 
   res.json({ obligacion: publicObligacion(actualizadas[0]) });
+}
+
+/** PATCH /api/clientes/:id — hoy solo reasigna el responsable (para repartir
+ * carga de trabajo). Gerente/super admin: a cualquier persona. Líder de
+ * equipo: solo entre las personas que coordina (y ella misma), y solo para
+ * clientes que ya son suyos o de su equipo. */
+export async function actualizarClienteHandler(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "ID inválido." });
+    return;
+  }
+
+  const { responsableId } = req.body ?? {};
+  if (responsableId !== null && !Number.isInteger(Number(responsableId))) {
+    res.status(400).json({ error: "responsableId inválido." });
+    return;
+  }
+  const nuevoResponsableId = responsableId === null ? null : Number(responsableId);
+
+  const db = getPool();
+  const { rows } = await db.query(
+    `SELECT c.*, e.coordinador_id AS responsable_coordinador_id
+     FROM clientes c
+     LEFT JOIN employees e ON e.id = c.responsable_id
+     WHERE c.id = $1`,
+    [id]
+  );
+  const cliente = rows[0];
+  if (!cliente) {
+    res.status(404).json({ error: "Cliente no encontrado." });
+    return;
+  }
+
+  if (!puedeGestionar(req.employee, cliente.responsable_id, cliente.responsable_coordinador_id)) {
+    res.status(403).json({ error: "No tienes permisos para reasignar este cliente." });
+    return;
+  }
+
+  // Una líder de equipo solo puede mover el cliente a alguien de su propio
+  // equipo (o a sí misma) — no puede regalarle un cliente a otro equipo.
+  if (req.employee.rol === "lider_equipo" && nuevoResponsableId !== null && nuevoResponsableId !== req.employee.id) {
+    const { rows: destino } = await db.query("SELECT coordinador_id FROM employees WHERE id = $1", [nuevoResponsableId]);
+    if (!destino[0] || destino[0].coordinador_id !== req.employee.id) {
+      res.status(403).json({ error: "Solo puedes asignar clientes a personas de tu propio equipo." });
+      return;
+    }
+  }
+
+  const { rows: actualizado } = await db.query(
+    "UPDATE clientes SET responsable_id = $1 WHERE id = $2 RETURNING *",
+    [nuevoResponsableId, id]
+  );
+
+  res.json({ cliente: { ...publicCliente(actualizado[0]), obligaciones: [] } });
 }

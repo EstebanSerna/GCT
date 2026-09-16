@@ -23,6 +23,27 @@ export const MENSAJES_GERENTE: string[] = [
   "Hoy, como cada día, tu firma sigue de pie porque tú decidiste que valía la pena sostenerla. Gracias por liderar así.",
 ];
 
+export const MENSAJES_LIDER_EQUIPO: string[] = [
+  "Hoy, como cada día, cuatro personas confían en que tú les des dirección. Eso no se improvisa: se gana, y tú te lo has ganado.",
+  "No lideras porque tengas todas las respuestas. Lideras porque sabes a quién preguntarle, y confías en que tu equipo también las tiene.",
+  "Cada vez que resuelves una duda antes de que se vuelva un problema, le estás ahorrando estrés a cuatro personas más. Eso es liderazgo silencioso.",
+  "Ser el puente entre gerencia y el equipo no es fácil, y tú lo haces con una claridad que se nota.",
+  "Hoy alguien de tu equipo va a tomar una mejor decisión porque supo que podía preguntarte sin miedo a equivocarse.",
+  "No necesitas alzar la voz para que se note que lideras. Se nota en cómo trabaja tu equipo cuando tú no estás mirando.",
+  "Coordinar no es controlar. Es asegurarte de que cada quien tenga lo que necesita para hacer su mejor trabajo. Eso lo haces tú, todos los días.",
+  "Hoy es un buen día para recordar que un equipo que cumple sus plazos casi nunca lo hace solo — alguien sostiene el ritmo detrás. Esa persona eres tú.",
+  "Las líderes de equipo no cargan el trabajo de todos. Cargan la responsabilidad de que todos puedan cargar el suyo bien. Y tú lo haces con calma.",
+  "Cada vez que redistribuyes una carga de trabajo a tiempo, evitas que alguien de tu equipo se ahogue en silencio. Eso es cuidar de verdad.",
+  "No todos los liderazgos empiezan con un título grande. El tuyo empezó con hacer bien tu trabajo, y hoy lidera a cuatro personas que confían en ti.",
+  "Hoy tu equipo cumple porque tú te encargaste de que nadie se quedara atrás. Eso no lo ve todo el mundo, pero se siente en cada entrega a tiempo.",
+  "Ser líder de equipo significa que tu criterio ya no solo te representa a ti — representa a cuatro personas más. Y tú lo llevas con responsabilidad.",
+  "Hoy alguien de tu equipo respira más tranquilo porque sabe que, si algo se complica, tú vas a estar ahí para ayudar a resolverlo.",
+  "No mides tu liderazgo en cuánto controlas, sino en cuánto confías. Y esa confianza que le das a tu equipo se les nota en cómo trabajan.",
+  "Cada persona de tu equipo tiene un estilo distinto, y tú lo sabes — por eso sabes cuándo empujar y cuándo simplemente acompañar.",
+  "Hoy es un buen día para recordar que llegaste a coordinar este equipo porque alguien vio en ti algo que tú quizás ni notabas. Y lo estás demostrando cada día.",
+  "Gracias por ser el punto en el que el equipo sabe que puede apoyarse. Eso, en cualquier firma, vale más que cualquier título.",
+];
+
 export const MENSAJES_CONTADOR: string[] = [
   "Hoy, en algún lugar, un empresario va a dormir tranquilo porque tú revisaste sus números con cuidado. Eso no es un detalle menor, es tu forma de cuidar a alguien.",
   "No eres solo quien lleva la contabilidad de tus clientes. Eres quien les da la claridad para tomar decisiones valientes en su negocio. Eso te hace un líder que empodera líderes.",

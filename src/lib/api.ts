@@ -6,7 +6,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 const TOKEN_KEY = "gct_token";
 
-export type Rol = "super_admin" | "gerente" | "contador" | "auxiliar";
+export type Rol = "super_admin" | "gerente" | "lider_equipo" | "contador" | "auxiliar";
 
 export interface ApiEmpleado {
   id: number;
@@ -18,6 +18,7 @@ export interface ApiEmpleado {
   telefono: string | null;
   fotoBase64: string | null;
   activo: boolean;
+  coordinadorId: number | null;
 }
 
 export interface RegistroAsistencia {
@@ -147,7 +148,7 @@ export const api = {
     return request<{ employees: ApiEmpleado[] }>("/api/employees");
   },
 
-  /** Gerente: solo el equipo activo. */
+  /** Gerente/super admin: todo el equipo activo. Líder de equipo: solo quienes coordina. */
   equipo() {
     return request<{ employees: ApiEmpleado[] }>("/api/employees/equipo");
   },
@@ -159,7 +160,10 @@ export const api = {
     });
   },
 
-  actualizarEmpleado(id: number, input: { activo?: boolean; rol?: Exclude<Rol, "super_admin">; password?: string }) {
+  actualizarEmpleado(
+    id: number,
+    input: { activo?: boolean; rol?: Exclude<Rol, "super_admin">; password?: string; coordinadorId?: number | null }
+  ) {
     return request<{ employee: ApiEmpleado }>(`/api/employees/${id}`, {
       method: "PATCH",
       body: JSON.stringify(input),
@@ -179,6 +183,14 @@ export const api = {
     return request<{ obligacion: ApiObligacion }>(`/api/obligaciones/${id}`, {
       method: "PATCH",
       body: JSON.stringify({ estado }),
+    });
+  },
+
+  /** Reasigna el responsable de un cliente (repartir carga de trabajo). */
+  reasignarCliente(id: string, responsableId: number | null) {
+    return request<{ cliente: ApiCliente }>(`/api/clientes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ responsableId }),
     });
   },
 };

@@ -3,12 +3,14 @@ import type { FormEvent } from "react";
 import { UserPlus, ShieldCheck, ShieldOff, KeyRound, Download, AlertTriangle, Trash2, CheckCircle2 } from "lucide-react";
 import { api, ApiError, type ApiEmpleado, type Rol, type RegistroAsistenciaAdmin } from "../lib/api";
 import { agruparPorDiaYEmpleado, descargarCsv } from "../lib/reporte";
+import { formatoNombre } from "../lib/texto";
 
 type RolAsignable = Exclude<Rol, "super_admin">;
 
 const ROL_LABEL: Record<Rol, string> = {
   super_admin: "Super admin",
   gerente: "Gerente",
+  lider_equipo: "Líder de equipo",
   contador: "Contador/a",
   auxiliar: "Auxiliar contable",
 };
@@ -86,6 +88,7 @@ function NuevoEmpleadoForm({ onCreado }: { onCreado: (e: ApiEmpleado) => void })
         >
           <option value="contador">Contador/a</option>
           <option value="auxiliar">Auxiliar contable</option>
+          <option value="lider_equipo">Líder de equipo</option>
           <option value="gerente">Gerente</option>
         </select>
       </label>
@@ -146,7 +149,7 @@ function FilaPendiente({ emp, onResuelto }: { emp: ApiEmpleado; onResuelto: (e: 
           </span>
         )}
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-ink">{emp.nombre}</p>
+          <p className="truncate text-sm font-medium text-ink">{formatoNombre(emp.nombre)}</p>
           <p className="truncate text-xs text-ash">{emp.email} · {emp.documento} · {emp.telefono}</p>
         </div>
       </div>
@@ -158,6 +161,7 @@ function FilaPendiente({ emp, onResuelto }: { emp: ApiEmpleado; onResuelto: (e: 
         >
           <option value="contador">Contador/a</option>
           <option value="auxiliar">Auxiliar</option>
+          <option value="lider_equipo">Líder de equipo</option>
           <option value="gerente">Gerente</option>
         </select>
         <button
@@ -181,7 +185,17 @@ function FilaPendiente({ emp, onResuelto }: { emp: ApiEmpleado; onResuelto: (e: 
   );
 }
 
-function FilaEmpleado({ emp, onCambiado, onEliminado }: { emp: ApiEmpleado; onCambiado: (e: ApiEmpleado) => void; onEliminado: (id: number) => void }) {
+function FilaEmpleado({
+  emp,
+  lideresDisponibles,
+  onCambiado,
+  onEliminado,
+}: {
+  emp: ApiEmpleado;
+  lideresDisponibles: ApiEmpleado[];
+  onCambiado: (e: ApiEmpleado) => void;
+  onEliminado: (id: number) => void;
+}) {
   const [ocupado, setOcupado] = useState(false);
 
   async function toggleActivo() {
@@ -198,6 +212,16 @@ function FilaEmpleado({ emp, onCambiado, onEliminado }: { emp: ApiEmpleado; onCa
     setOcupado(true);
     try {
       const { employee } = await api.actualizarEmpleado(emp.id, { rol });
+      onCambiado(employee);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function cambiarCoordinador(coordinadorId: number | null) {
+    setOcupado(true);
+    try {
+      const { employee } = await api.actualizarEmpleado(emp.id, { coordinadorId });
       onCambiado(employee);
     } finally {
       setOcupado(false);
@@ -243,13 +267,32 @@ function FilaEmpleado({ emp, onCambiado, onEliminado }: { emp: ApiEmpleado; onCa
           </span>
         )}
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-ink">{emp.nombre}</p>
+          <p className="truncate text-sm font-medium text-ink">{formatoNombre(emp.nombre)}</p>
           <p className="truncate text-xs text-ash">
             {emp.email} {!emp.activo && "· inactivo"}
+            {(emp.rol === "contador" || emp.rol === "auxiliar") && emp.coordinadorId && (
+              <> · coordinado por {formatoNombre(lideresDisponibles.find((l) => l.id === emp.coordinadorId)?.nombre ?? "—")}</>
+            )}
           </p>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+        {(emp.rol === "contador" || emp.rol === "auxiliar") && (
+          <select
+            value={emp.coordinadorId ?? ""}
+            onChange={(e) => cambiarCoordinador(e.target.value ? Number(e.target.value) : null)}
+            disabled={ocupado}
+            className="rounded-md border border-ash-light/50 bg-white px-2 py-1.5 text-xs text-ink outline-none focus:border-magenta disabled:opacity-50"
+            title="Líder de equipo que coordina a esta persona"
+          >
+            <option value="">Sin líder asignado</option>
+            {lideresDisponibles.map((l) => (
+              <option key={l.id} value={l.id}>
+                {formatoNombre(l.nombre)}
+              </option>
+            ))}
+          </select>
+        )}
         {emp.rol !== "super_admin" && (
           <select
             value={emp.rol ?? "contador"}
@@ -259,6 +302,7 @@ function FilaEmpleado({ emp, onCambiado, onEliminado }: { emp: ApiEmpleado; onCa
           >
             <option value="contador">Contador/a</option>
             <option value="auxiliar">Auxiliar</option>
+            <option value="lider_equipo">Líder de equipo</option>
             <option value="gerente">Gerente</option>
           </select>
         )}
@@ -312,6 +356,7 @@ export default function Empleados() {
   const filas = useMemo(() => agruparPorDiaYEmpleado(registros ?? []), [registros]);
   const pendientes = empleados?.filter((e) => !e.activo) ?? [];
   const activos = empleados?.filter((e) => e.activo) ?? [];
+  const lideresDisponibles = activos.filter((e) => e.rol === "lider_equipo");
 
   function actualizarEnLista(actualizado: ApiEmpleado) {
     setEmpleados((prev) => prev?.map((e) => (e.id === actualizado.id ? actualizado : e)) ?? null);
@@ -371,7 +416,13 @@ export default function Empleados() {
             </p>
           ) : (
             activos.map((emp) => (
-              <FilaEmpleado key={emp.id} emp={emp} onCambiado={actualizarEnLista} onEliminado={eliminarDeLista} />
+              <FilaEmpleado
+                key={emp.id}
+                emp={emp}
+                lideresDisponibles={lideresDisponibles}
+                onCambiado={actualizarEnLista}
+                onEliminado={eliminarDeLista}
+              />
             ))
           )}
         </div>

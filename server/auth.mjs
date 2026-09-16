@@ -190,6 +190,9 @@ function requireRoles(roles) {
 /** Gerente o super admin. */
 export const requireGerenteOAbove = requireRoles(["gerente", "super_admin"]);
 
+/** Líder de equipo, gerente o super admin. */
+export const requireLiderEquipoOAbove = requireRoles(["lider_equipo", "gerente", "super_admin"]);
+
 /** Solo super admin. */
 export const requireSuperAdmin = requireRoles(["super_admin"]);
 

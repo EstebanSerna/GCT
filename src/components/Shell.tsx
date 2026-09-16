@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, Fingerprint, ShieldCheck, CalendarDays } from "lucide-react";
+import { Menu, X, Fingerprint, ShieldCheck, CalendarDays, Users } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "./Stamp";
@@ -9,6 +9,7 @@ import { RingMark } from "./Stamp";
 const ROL_LABEL: Record<string, string> = {
   super_admin: "Super admin",
   gerente: "Gerente de la firma",
+  lider_equipo: "Líder de equipo",
   contador: "Contador/a",
   auxiliar: "Auxiliar contable",
 };
@@ -22,6 +23,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const esSuperAdmin = usuarioActual.rol === "super_admin";
   const esGerenteOMas = esSuperAdmin || usuarioActual.rol === "gerente";
+  const esLiderEquipo = usuarioActual.rol === "lider_equipo";
 
   const linkBase =
     "flex items-center gap-2.5 rounded-md px-3.5 py-2.5 text-sm font-medium transition-colors";
@@ -63,6 +65,14 @@ export function Shell({ children }: { children: ReactNode }) {
           className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
         >
           <RingMark /> Panel de gerencia
+        </NavLink>
+      ) : esLiderEquipo ? (
+        <NavLink
+          to="/equipo"
+          onClick={() => setMenuAbierto(false)}
+          className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+        >
+          <Users size={14} /> Panel de equipo
         </NavLink>
       ) : (
         <NavLink

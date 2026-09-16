@@ -32,7 +32,7 @@ function isValidCoord(value) {
 
 // La gerencia y el super admin no marcan entrada/salida — solo el equipo
 // operativo (contadores y auxiliares).
-const ROLES_QUE_MARCAN = ["contador", "auxiliar"];
+const ROLES_QUE_MARCAN = ["contador", "auxiliar", "lider_equipo"];
 
 /** POST /api/attendance/:tipo  (tipo = "entrada" | "salida") */
 export function createMarkHandler(tipo) {

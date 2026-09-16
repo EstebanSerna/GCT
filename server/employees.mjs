@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { getPool } from "./db.mjs";
 import { esEmailValido, validarPassword, inicialesDe } from "./validation.mjs";
 
-const ROLES_ASIGNABLES = ["gerente", "contador", "auxiliar"]; // super_admin no se asigna por acá
+const ROLES_ASIGNABLES = ["gerente", "lider_equipo", "contador", "auxiliar"]; // super_admin no se asigna por acá
 
 function publicEmployee(row) {
   return {
@@ -15,6 +15,7 @@ function publicEmployee(row) {
     telefono: row.telefono,
     fotoBase64: row.foto_base64,
     activo: row.activo,
+    coordinadorId: row.coordinador_id ?? null,
   };
 }
 
@@ -25,12 +26,17 @@ export async function listHandler(req, res) {
   res.json({ employees: rows.map(publicEmployee) });
 }
 
-/** GET /api/employees/equipo — gerente: solo el equipo activo (sin fotos/datos sensibles de más). */
+/** GET /api/employees/equipo — gerente/super admin: todo el equipo activo.
+ * Líder de equipo: solo las personas que coordina. Sin fotos/datos sensibles de más. */
 export async function listEquipoHandler(req, res) {
   const db = getPool();
-  const { rows } = await db.query(
-    "SELECT id, nombre, email, rol, iniciales, activo FROM employees WHERE activo = true ORDER BY nombre ASC"
-  );
+  const esGerenteOMas = req.employee.rol === "gerente" || req.employee.rol === "super_admin";
+  const { rows } = esGerenteOMas
+    ? await db.query("SELECT id, nombre, email, rol, iniciales, activo, coordinador_id FROM employees WHERE activo = true ORDER BY nombre ASC")
+    : await db.query(
+        "SELECT id, nombre, email, rol, iniciales, activo, coordinador_id FROM employees WHERE activo = true AND coordinador_id = $1 ORDER BY nombre ASC",
+        [req.employee.id]
+      );
   res.json({ employees: rows.map((r) => ({ ...publicEmployee(r), fotoBase64: undefined })) });
 }
 
@@ -82,7 +88,7 @@ export async function updateHandler(req, res) {
     return;
   }
 
-  const { activo, rol, password } = req.body ?? {};
+  const { activo, rol, password, coordinadorId } = req.body ?? {};
   const db = getPool();
 
   if (typeof activo === "boolean") {
@@ -94,6 +100,13 @@ export async function updateHandler(req, res) {
       return;
     }
     await db.query("UPDATE employees SET rol = $1 WHERE id = $2", [rol, id]);
+  }
+  if (coordinadorId !== undefined) {
+    if (coordinadorId !== null && Number(coordinadorId) === id) {
+      res.status(400).json({ error: "Una persona no puede coordinarse a sí misma." });
+      return;
+    }
+    await db.query("UPDATE employees SET coordinador_id = $1 WHERE id = $2", [coordinadorId, id]);
   }
   if (typeof password === "string") {
     const errorPassword = validarPassword(password);

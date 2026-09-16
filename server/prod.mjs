@@ -16,11 +16,12 @@ import {
   meHandler,
   requireAuth,
   requireGerenteOAbove,
+  requireLiderEquipoOAbove,
   requireSuperAdmin,
 } from "./auth.mjs";
 import { createMarkHandler, getTodayHandler, getAllHandler } from "./attendance.mjs";
 import { listHandler, listEquipoHandler, createHandler, updateHandler, deleteHandler } from "./employees.mjs";
-import { listHandler as listClientesHandler, actualizarObligacionHandler } from "./clientes.mjs";
+import { listHandler as listClientesHandler, actualizarObligacionHandler, actualizarClienteHandler } from "./clientes.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "..", "dist");
@@ -98,14 +99,15 @@ api.post("/employees", requireSuperAdmin, createHandler);
 api.patch("/employees/:id", requireSuperAdmin, updateHandler);
 api.delete("/employees/:id", requireSuperAdmin, deleteHandler);
 
-// Vista liviana del equipo activo, para la gerente (reportes, sin datos
-// sensibles de más).
-api.get("/employees/equipo", requireGerenteOAbove, listEquipoHandler);
+// Vista liviana del equipo, para gerencia y líderes de equipo (reportes,
+// sin datos sensibles de más).
+api.get("/employees/equipo", requireLiderEquipoOAbove, listEquipoHandler);
 
-// Clientes: cada quien ve los suyos (o todos, si es gerente/super admin) —
-// el filtro por rol vive dentro del handler porque depende de datos (el
+// Clientes: cada quien ve los suyos (o de su equipo, o todos, según el rol)
+// — el filtro vive dentro del handler porque depende de datos (el
 // responsable_id de cada cliente), no solo del rol en sí.
 api.get("/clientes", requireAuth, listClientesHandler);
+api.patch("/clientes/:id", requireAuth, actualizarClienteHandler);
 api.patch("/obligaciones/:id", requireAuth, actualizarObligacionHandler);
 
 app.use("/api", api);

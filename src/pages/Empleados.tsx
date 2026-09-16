@@ -189,16 +189,23 @@ function FilaPendiente({ emp, onResuelto }: { emp: ApiEmpleado; onResuelto: (e: 
 function FilaEmpleado({
   emp,
   lideresDisponibles,
+  gerentesDisponibles,
   onCambiado,
   onEliminado,
 }: {
   emp: ApiEmpleado;
   lideresDisponibles: ApiEmpleado[];
+  gerentesDisponibles: ApiEmpleado[];
   onCambiado: (e: ApiEmpleado) => void;
   onEliminado: (id: number) => void;
 }) {
   const [ocupado, setOcupado] = useState(false);
   const [mostrarCoordinador, setMostrarCoordinador] = useState(false);
+
+  // Contador/auxiliar reportan a un líder de equipo; un líder de equipo
+  // reporta a gerencia. Cada fila ofrece las opciones que le corresponden.
+  const opcionesCoordinador = emp.rol === "lider_equipo" ? gerentesDisponibles : lideresDisponibles;
+  const puedeAsignarCoordinador = emp.rol === "contador" || emp.rol === "auxiliar" || emp.rol === "lider_equipo";
 
   async function toggleActivo() {
     setOcupado(true);
@@ -276,12 +283,12 @@ function FilaEmpleado({
         </div>
       </div>
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-        {(emp.rol === "contador" || emp.rol === "auxiliar") && lideresDisponibles.length > 0 && (
+        {puedeAsignarCoordinador && opcionesCoordinador.length > 0 && (
           <div className="relative">
             <button
               onClick={() => setMostrarCoordinador((v) => !v)}
               className="rounded-md p-2 text-ash hover:bg-ink/5 hover:text-magenta-deep"
-              title="Asignar líder de equipo"
+              title={emp.rol === "lider_equipo" ? "Asignar gerente" : "Asignar líder de equipo"}
             >
               <UserCog size={15} />
             </button>
@@ -296,10 +303,10 @@ function FilaEmpleado({
                 disabled={ocupado}
                 autoFocus
                 className="absolute right-0 top-full z-10 mt-1 rounded-md border border-ash-light/50 bg-white px-2 py-1.5 text-xs text-ink shadow-md outline-none focus:border-magenta disabled:opacity-50"
-                title="Líder de equipo que coordina a esta persona"
+                title={emp.rol === "lider_equipo" ? "Gerente a quien reporta" : "Líder de equipo que coordina a esta persona"}
               >
-                <option value="">Sin líder asignado</option>
-                {lideresDisponibles.map((l) => (
+                <option value="">Sin asignar</option>
+                {opcionesCoordinador.map((l) => (
                   <option key={l.id} value={l.id}>
                     {formatoNombre(l.nombre)}
                   </option>
@@ -373,6 +380,7 @@ export default function Empleados() {
   const pendientes = empleados?.filter((e) => !e.activo) ?? [];
   const activos = empleados?.filter((e) => e.activo) ?? [];
   const lideresDisponibles = activos.filter((e) => e.rol === "lider_equipo");
+  const gerentesDisponibles = activos.filter((e) => e.rol === "gerente");
   // Tu propia cuenta no se muestra en esta lista — no tiene sentido
   // gestionarte a ti mismo desde acá.
   const activosVisibles = activos.filter((e) => e.id !== usuarioActual?.dbId);
@@ -439,6 +447,7 @@ export default function Empleados() {
                 key={emp.id}
                 emp={emp}
                 lideresDisponibles={lideresDisponibles}
+                gerentesDisponibles={gerentesDisponibles}
                 onCambiado={actualizarEnLista}
                 onEliminado={eliminarDeLista}
               />

@@ -18,6 +18,7 @@ function publicCliente(row) {
     },
     clienteDesde: row.cliente_desde ? row.cliente_desde.toISOString().slice(0, 10) : "",
     responsableId: row.responsable_id !== null ? String(row.responsable_id) : null,
+    revisorId: row.revisor_id !== null ? String(row.revisor_id) : null,
     honorariosMensuales: row.honorarios_mensuales !== null ? Number(row.honorarios_mensuales) : 0,
     estadoCartera: row.estado_cartera,
     notas: row.notas ?? "",

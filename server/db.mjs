@@ -93,6 +93,10 @@ const MIGRATIONS = [
     notas TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`,
+  // Quién digita la info del cliente (responsable_id, normalmente auxiliar)
+  // y quién la revisa (revisor_id, normalmente contador) son dos personas
+  // distintas en la operación real de la firma — no siempre coinciden.
+  `ALTER TABLE clientes ADD COLUMN IF NOT EXISTS revisor_id INTEGER REFERENCES employees(id) ON DELETE SET NULL`,
   `CREATE TABLE IF NOT EXISTS obligaciones (
     id SERIAL PRIMARY KEY,
     cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,

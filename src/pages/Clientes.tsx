@@ -196,6 +196,7 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
   const aniosCliente = aniosDesde(cliente.clienteDesde, hoy);
   const cartera = CARTERA_INFO[cliente.estadoCartera];
   const nombreResponsable = usuarios.find((u) => u.dbId !== undefined && String(u.dbId) === cliente.responsableId)?.nombre ?? "Sin asignar";
+  const nombreRevisor = usuarios.find((u) => u.dbId !== undefined && String(u.dbId) === cliente.revisorId)?.nombre ?? "Sin asignar";
 
   const porMes = useMemo(() => {
     const grupos = new Map<string, Obligacion[]>();
@@ -264,6 +265,7 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
             Cliente desde {formatoFechaCorta(cliente.clienteDesde)} · {aniosCliente} año{aniosCliente === 1 ? "" : "s"}
           </p>
           <p className="mt-1 text-xs text-ash">Responsable: {nombreResponsable}</p>
+          <p className="text-xs text-ash">Revisado por: {nombreRevisor}</p>
           {aniversario.dias <= DIAS_SPOTLIGHT && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-magenta-deep">
               <PartyPopper size={12} />

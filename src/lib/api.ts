@@ -57,6 +57,7 @@ export interface ApiCliente {
   contacto: { nombre: string; telefono: string; correo: string; fechaNacimiento: string };
   clienteDesde: string;
   responsableId: string | null;
+  revisorId: string | null;
   honorariosMensuales: number;
   estadoCartera: "al_dia" | "en_mora";
   notas: string;

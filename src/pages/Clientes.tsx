@@ -250,9 +250,15 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
           </p>
           <p className="mt-2 flex items-center gap-1.5 text-xs text-magenta-deep">
             <Cake size={12} />
-            Cumpleaños {diaMesCorto(cliente.contacto.fechaNacimiento)}
-            {cumple.dias <= DIAS_SPOTLIGHT && (
-              <span className="font-mono">· {cumple.dias === 0 ? "hoy" : cumple.dias === 1 ? "mañana" : `en ${cumple.dias} días`}</span>
+            {cliente.contacto.fechaNacimiento ? (
+              <>
+                Cumpleaños {diaMesCorto(cliente.contacto.fechaNacimiento)}
+                {cumple.dias <= DIAS_SPOTLIGHT && (
+                  <span className="font-mono">· {cumple.dias === 0 ? "hoy" : cumple.dias === 1 ? "mañana" : `en ${cumple.dias} días`}</span>
+                )}
+              </>
+            ) : (
+              <span className="text-ash">Cumpleaños no registrado</span>
             )}
           </p>
         </div>
@@ -262,7 +268,9 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
             <Building2 size={13} /> Relación con GCT
           </p>
           <p className="mt-1.5 text-sm font-medium text-ink">
-            Cliente desde {formatoFechaCorta(cliente.clienteDesde)} · {aniosCliente} año{aniosCliente === 1 ? "" : "s"}
+            {cliente.clienteDesde
+              ? `Cliente desde ${formatoFechaCorta(cliente.clienteDesde)} · ${aniosCliente} año${aniosCliente === 1 ? "" : "s"}`
+              : "Fecha de vinculación no registrada"}
           </p>
           <p className="mt-1 text-xs text-ash">Responsable: {nombreResponsable}</p>
           <p className="text-xs text-ash">Revisado por: {nombreRevisor}</p>

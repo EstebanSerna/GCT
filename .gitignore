@@ -4,3 +4,4 @@ dist
 .env.local
 *.zip
 *.xlsx
+_tmp_*

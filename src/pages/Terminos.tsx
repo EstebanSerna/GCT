@@ -7,8 +7,8 @@ export default function Terminos() {
       <Seccion titulo="1. Identificación">
         <p>
           Este sitio es operado por Gerencia Contable &amp; Tributaria ("GCT"). Razón social:{" "}
-          <Pendiente>razón social completa</Pendiente>. NIT: <Pendiente>NIT</Pendiente>. Domicilio: Medellín,
-          Colombia.
+          <Pendiente>razón social completa</Pendiente>. NIT: <Pendiente>NIT</Pendiente>. Domicilio: Cra. 48 #12
+          Sur-148, Centro Profesional El Crucero, Torre 2, Oficina 102, El Poblado, Medellín, Colombia.
         </p>
       </Seccion>
 
@@ -87,8 +87,10 @@ export default function Terminos() {
 
       <Seccion titulo="11. Legislación aplicable y jurisdicción">
         <p>
-          Estos términos se rigen por las leyes de la República de Colombia. La jurisdicción competente para
-          cualquier controversia <Pendiente>debe confirmarse conforme al domicilio real de la empresa</Pendiente>.
+          Estos términos se rigen por las leyes de la República de Colombia. Para cualquier controversia, las
+          partes se someten a los jueces y tribunales competentes de Medellín, domicilio de GCT — la redacción
+          exacta de esta cláusula <Pendiente>debe confirmarse con un abogado</Pendiente> antes de considerarla
+          definitiva.
         </p>
       </Seccion>
 

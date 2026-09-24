@@ -151,8 +151,7 @@ export default function Privacidad() {
       </Seccion>
 
       <p className="text-xs text-ash">
-        Este documento es una guía de cumplimiento basada en la Ley 1581 de 2012 y su normativa reglamentaria, y no
-        sustituye la revisión de un abogado. Ver también nuestra{" "}
+        Ver también nuestra{" "}
         <Link to="/cookies" className="text-magenta-deep underline underline-offset-2 hover:text-magenta">
           Política de Cookies
         </Link>{" "}

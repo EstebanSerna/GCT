@@ -14,12 +14,15 @@ import { clientesDemo } from "../data/clientesDemo";
 // construir el backend real (tabla de sesiones de cliente, bcrypt, etc.),
 // igual de serio que el del equipo interno.
 const CLAVE_DEMO = "ClienteGCT2026";
+const CORREO_DEMO = "marcela.rios@vistahermosa.com.co";
 const STORAGE_KEY = "gct_cliente_demo_id";
 
 interface PortalClienteState {
   clienteActual: Cliente | null;
   cargando: boolean;
   iniciarSesion: (correo: string, password: string) => { ok: boolean; error?: string };
+  /** Entra con la cuenta de vista previa sin mostrar la contraseña en pantalla. */
+  entrarConDemo: () => { ok: boolean; error?: string };
   cerrarSesion: () => void;
   actualizarContacto: (datos: Partial<Cliente["contacto"]>) => void;
 }
@@ -46,6 +49,10 @@ export function PortalClienteProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   }
 
+  function entrarConDemo() {
+    return iniciarSesion(CORREO_DEMO, CLAVE_DEMO);
+  }
+
   function cerrarSesion() {
     setClienteId(null);
     localStorage.removeItem(STORAGE_KEY);
@@ -59,7 +66,9 @@ export function PortalClienteProvider({ children }: { children: ReactNode }) {
   const clienteActual = clienteId ? clientes.find((c) => c.id === clienteId) ?? null : null;
 
   return (
-    <PortalClienteContext.Provider value={{ clienteActual, cargando, iniciarSesion, cerrarSesion, actualizarContacto }}>
+    <PortalClienteContext.Provider
+      value={{ clienteActual, cargando, iniciarSesion, entrarConDemo, cerrarSesion, actualizarContacto }}
+    >
       {children}
     </PortalClienteContext.Provider>
   );

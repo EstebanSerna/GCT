@@ -9,7 +9,7 @@ import { CampoAuth } from "../components/CampoAuth";
 import { FondoAuth } from "../components/FondoAuth";
 
 export default function PortalClienteLogin() {
-  const { iniciarSesion } = usePortalCliente();
+  const { iniciarSesion, entrarConDemo } = usePortalCliente();
   const navigate = useNavigate();
 
   const [correo, setCorreo] = useState("");
@@ -27,6 +27,19 @@ export default function PortalClienteLogin() {
     const resultado = iniciarSesion(correo, password);
     if (!resultado.ok) {
       setError(resultado.error ?? "No pudimos verificar tus datos.");
+      setCargando(false);
+      return;
+    }
+    navigate("/portal-clientes/inicio");
+  }
+
+  async function onEntrarComoDemo() {
+    setError(null);
+    setCargando(true);
+    await new Promise((r) => setTimeout(r, 250));
+    const resultado = entrarConDemo();
+    if (!resultado.ok) {
+      setError(resultado.error ?? "No pudimos abrir la vista previa.");
       setCargando(false);
       return;
     }
@@ -55,6 +68,9 @@ export default function PortalClienteLogin() {
           <p className="mt-2 flex items-center gap-1.5 text-sm text-paper/50">
             <RingMark size={12} /> Tu información tributaria, siempre a la mano
           </p>
+          <span className="mt-3 rounded-full border border-magenta/25 bg-magenta/10 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-magenta-soft">
+            Vista previa — datos ilustrativos
+          </span>
         </div>
 
         <form
@@ -116,16 +132,30 @@ export default function PortalClienteLogin() {
           </button>
         </form>
 
-        <div className="mt-6 rounded-xl border border-magenta/15 bg-magenta/5 px-4 py-3 text-center text-xs text-paper/50">
-          Vista previa de diseño — probá con{" "}
-          <span className="font-mono text-magenta-soft">marcela.rios@vistahermosa.com.co</span> y contraseña{" "}
-          <span className="font-mono text-magenta-soft">ClienteGCT2026</span>
+        <div className="mt-6 flex flex-col items-center gap-2 rounded-xl border border-magenta/15 bg-magenta/5 px-4 py-3 text-center text-xs text-paper/50">
+          <p>
+            Este portal todavía no está conectado a cuentas reales de clientes — es una vista previa de diseño con
+            datos ilustrativos.
+          </p>
+          <button
+            type="button"
+            onClick={onEntrarComoDemo}
+            disabled={cargando}
+            className="font-medium text-magenta-soft underline underline-offset-2 hover:text-white disabled:opacity-60"
+          >
+            Entrar con la cuenta de demostración
+          </button>
         </div>
 
         <p className="mt-6 text-center text-sm text-paper/45">
           ¿Eres del equipo de GCT?{" "}
           <Link to="/portal" className="font-medium text-magenta-soft hover:text-white">
             Ingresa acá
+          </Link>
+        </p>
+        <p className="mt-4 text-center text-xs text-paper/35">
+          <Link to="/privacidad" className="hover:text-paper/60">
+            Política de Privacidad
           </Link>
         </p>
       </div>

@@ -38,6 +38,7 @@ export default function Registro() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendienteAprobacion, setPendienteAprobacion] = useState(false);
+  const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
 
   const passwordValida = REQUISITOS.every((r) => r.cumple(password));
 
@@ -65,6 +66,10 @@ export default function Registro() {
       setError("Las contraseñas no coinciden.");
       return;
     }
+    if (!aceptaPrivacidad) {
+      setError("Debes aceptar la Política de Privacidad para crear tu cuenta.");
+      return;
+    }
 
     setCargando(true);
     try {
@@ -75,6 +80,7 @@ export default function Registro() {
         email: email.trim(),
         password,
         fotoBase64,
+        aceptaPrivacidad,
       });
 
       if (resultado.pendiente) {
@@ -214,13 +220,29 @@ export default function Registro() {
             placeholder="••••••••"
           />
 
+          <label className="flex items-start gap-2.5 text-xs text-paper/60">
+            <input
+              type="checkbox"
+              checked={aceptaPrivacidad}
+              onChange={(e) => setAceptaPrivacidad(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-paper/30 bg-ink text-magenta accent-magenta"
+            />
+            <span>
+              He leído y acepto la{" "}
+              <Link to="/privacidad" target="_blank" className="text-magenta-soft underline underline-offset-2 hover:text-white">
+                Política de Privacidad
+              </Link>{" "}
+              para el tratamiento de mis datos personales como colaborador de GCT.
+            </span>
+          </label>
+
           {error && (
             <p className="rounded-full border border-folio-red/30 bg-folio-red/10 px-4 py-2.5 text-xs text-folio-red">{error}</p>
           )}
 
           <button
             type="submit"
-            disabled={cargando}
+            disabled={cargando || !aceptaPrivacidad}
             className="mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-magenta to-magenta-deep px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-magenta/25 transition-transform hover:scale-[1.01] disabled:opacity-60 disabled:hover:scale-100"
           >
             {cargando ? "Creando cuenta..." : (<>Registrarme <ArrowRight size={16} /></>)}

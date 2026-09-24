@@ -128,6 +128,7 @@ export interface DatosRegistro {
   email: string;
   password: string;
   fotoBase64?: string | null;
+  aceptaPrivacidad: boolean;
 }
 
 export const api = {

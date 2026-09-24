@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Tarea } from "../data/seed";
 
 export function EvidenciaModal({
@@ -12,12 +12,31 @@ export function EvidenciaModal({
 }) {
   const [archivo, setArchivo] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    panelRef.current?.focus();
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onCerrar();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onCerrar]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl bg-paper p-6 shadow-2xl">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="evidencia-modal-titulo"
+        tabIndex={-1}
+        className="w-full max-w-sm rounded-xl bg-paper p-6 shadow-2xl outline-none"
+      >
         <p className="font-mono text-[11px] uppercase tracking-wider text-ash">Marcar como completada</p>
-        <h2 className="mt-1 font-display text-lg font-semibold text-ink">{tarea.titulo}</h2>
+        <h2 id="evidencia-modal-titulo" className="mt-1 font-display text-lg font-semibold text-ink">
+          {tarea.titulo}
+        </h2>
         <p className="mt-2 text-sm text-ash">
           Para dejar constancia, adjunta un soporte de la entrega: captura, PDF o el documento final.
         </p>

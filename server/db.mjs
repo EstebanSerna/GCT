@@ -55,6 +55,9 @@ const MIGRATIONS = [
   // Quién coordina a quién: un contador/auxiliar apunta al líder de equipo
   // que lo dirige. Un líder de equipo no tiene por qué tener uno.
   `ALTER TABLE employees ADD COLUMN IF NOT EXISTS coordinador_id INTEGER REFERENCES employees(id) ON DELETE SET NULL`,
+  // Evidencia de que la persona aceptó la Política de Privacidad al
+  // registrarse — se guarda solo el momento en que aceptó, nada más.
+  `ALTER TABLE employees ADD COLUMN IF NOT EXISTS privacidad_aceptada_en TIMESTAMPTZ`,
   // --- resto de las tablas ---
   `CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,

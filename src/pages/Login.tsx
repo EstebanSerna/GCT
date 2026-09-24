@@ -94,11 +94,7 @@ export default function Login() {
             }
           />
 
-          <div className="flex items-center justify-between text-xs">
-            <label className="flex items-center gap-1.5 text-paper/45">
-              <input type="checkbox" className="h-3.5 w-3.5 rounded border-paper/30 bg-ink accent-magenta" />
-              Recordarme
-            </label>
+          <div className="flex items-center justify-end text-xs">
             <button
               type="button"
               onClick={() => setError("Contacta al equipo de sistemas para restablecer tu contraseña.")}
@@ -142,6 +138,11 @@ export default function Login() {
           ¿Eres cliente de GCT?{" "}
           <Link to="/portal-clientes" className="font-medium text-magenta-soft hover:text-white">
             Ingresa a tu portal
+          </Link>
+        </p>
+        <p className="mt-4 text-center text-xs text-paper/35">
+          <Link to="/privacidad" className="hover:text-paper/60">
+            Política de Privacidad
           </Link>
         </p>
       </div>

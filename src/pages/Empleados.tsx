@@ -145,7 +145,7 @@ function FilaPendiente({ emp, onResuelto }: { emp: ApiEmpleado; onResuelto: (e: 
     <div className="flex flex-col gap-3 rounded-lg border border-folio-amber/30 bg-folio-amber/5 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-center gap-3">
         {emp.fotoBase64 ? (
-          <img src={emp.fotoBase64} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+          <img src={emp.fotoBase64} alt={formatoNombre(emp.nombre)} className="h-9 w-9 shrink-0 rounded-full object-cover" />
         ) : (
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-folio-amber/20 text-[11px] font-semibold text-folio-amber">
             {emp.iniciales}
@@ -179,6 +179,7 @@ function FilaPendiente({ emp, onResuelto }: { emp: ApiEmpleado; onResuelto: (e: 
           disabled={ocupado}
           className="rounded-md p-1.5 text-ash hover:bg-folio-red/10 hover:text-folio-red disabled:opacity-50"
           title="Eliminar solicitud"
+          aria-label={`Eliminar solicitud de ${formatoNombre(emp.nombre)}`}
         >
           <Trash2 size={14} />
         </button>
@@ -285,7 +286,7 @@ function FilaEmpleado({
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-3">
       <div className="flex min-w-0 items-center gap-3">
         {emp.fotoBase64 ? (
-          <img src={emp.fotoBase64} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+          <img src={emp.fotoBase64} alt={formatoNombre(emp.nombre)} className="h-9 w-9 shrink-0 rounded-full object-cover" />
         ) : (
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/10 text-[11px] font-semibold text-ink">
             {emp.iniciales}
@@ -305,6 +306,12 @@ function FilaEmpleado({
               onClick={() => setMostrarCoordinador((v) => !v)}
               className="rounded-md p-2 text-ash hover:bg-ink/5 hover:text-magenta-deep"
               title={emp.rol === "lider_equipo" ? "Asignar gerente" : "Asignar líder de equipo"}
+              aria-label={
+                emp.rol === "lider_equipo"
+                  ? `Asignar gerente a ${formatoNombre(emp.nombre)}`
+                  : `Asignar líder de equipo a ${formatoNombre(emp.nombre)}`
+              }
+              aria-expanded={mostrarCoordinador}
             >
               <UserCog size={15} />
             </button>
@@ -350,6 +357,7 @@ function FilaEmpleado({
             disabled={ocupado}
             className="rounded-md p-2 text-ash hover:bg-ink/5 hover:text-magenta-deep disabled:opacity-50"
             title={`Ver el sistema como ${formatoNombre(emp.nombre)}`}
+            aria-label={`Ver el sistema como ${formatoNombre(emp.nombre)}`}
           >
             <Eye size={15} />
           </button>
@@ -359,6 +367,7 @@ function FilaEmpleado({
           disabled={ocupado}
           className="rounded-md p-2 text-ash hover:bg-ink/5 hover:text-magenta-deep disabled:opacity-50"
           title="Restablecer contraseña"
+          aria-label={`Restablecer contraseña de ${formatoNombre(emp.nombre)}`}
         >
           <KeyRound size={15} />
         </button>
@@ -369,6 +378,7 @@ function FilaEmpleado({
             emp.activo ? "text-folio-green hover:bg-folio-green/10" : "text-ash hover:bg-ink/5"
           }`}
           title={emp.activo ? "Desactivar" : "Reactivar"}
+          aria-label={`${emp.activo ? "Desactivar" : "Reactivar"} a ${formatoNombre(emp.nombre)}`}
         >
           {emp.activo ? <ShieldCheck size={15} /> : <ShieldOff size={15} />}
         </button>
@@ -378,6 +388,7 @@ function FilaEmpleado({
             disabled={ocupado}
             className="rounded-md p-2 text-ash hover:bg-folio-red/10 hover:text-folio-red disabled:opacity-50"
             title="Eliminar cuenta"
+            aria-label={`Eliminar cuenta de ${formatoNombre(emp.nombre)}`}
           >
             <Trash2 size={15} />
           </button>

@@ -17,6 +17,10 @@ import Calendario from "./pages/Calendario";
 import EquipoDashboard from "./pages/EquipoDashboard";
 import PortalClienteLogin from "./pages/PortalClienteLogin";
 import PortalClienteInicio from "./pages/PortalClienteInicio";
+import Privacidad from "./pages/Privacidad";
+import CookiesPolicy from "./pages/Cookies";
+import Terminos from "./pages/Terminos";
+import NoEncontrada from "./pages/NoEncontrada";
 
 function Protegida({ children, roles }: { children: ReactNode; roles?: Rol[] }) {
   const { usuarioActual, cargandoSesion } = useApp();
@@ -46,6 +50,10 @@ function Rutas() {
       <Route path="/calendario" element={<Protegida><Calendario /></Protegida>} />
       <Route path="/portal-clientes" element={<PortalClienteLogin />} />
       <Route path="/portal-clientes/inicio" element={<PortalClienteInicio />} />
+      <Route path="/privacidad" element={<Privacidad />} />
+      <Route path="/cookies" element={<CookiesPolicy />} />
+      <Route path="/terminos" element={<Terminos />} />
+      <Route path="*" element={<NoEncontrada />} />
     </Routes>
   );
 }

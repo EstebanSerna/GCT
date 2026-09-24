@@ -33,7 +33,7 @@ function publicEmployee(row) {
  * pendiente de aprobación del super admin, salvo el/los correos de la
  * lista de arriba. */
 export async function registroHandler(req, res) {
-  const { nombre, documento, telefono, email, password, fotoBase64 } = req.body ?? {};
+  const { nombre, documento, telefono, email, password, fotoBase64, aceptaPrivacidad } = req.body ?? {};
 
   if (typeof nombre !== "string" || nombre.trim().length < 3) {
     res.status(400).json({ error: "Escribe tu nombre completo." });
@@ -60,6 +60,10 @@ export async function registroHandler(req, res) {
     res.status(400).json({ error: "La foto es demasiado pesada. Intenta con una más liviana." });
     return;
   }
+  if (aceptaPrivacidad !== true) {
+    res.status(400).json({ error: "Debes aceptar la Política de Privacidad para crear tu cuenta." });
+    return;
+  }
 
   const emailNormalizado = email.trim().toLowerCase();
   const db = getPool();
@@ -74,8 +78,8 @@ export async function registroHandler(req, res) {
   const passwordHash = await bcrypt.hash(password, 10);
 
   const { rows } = await db.query(
-    `INSERT INTO employees (nombre, email, password_hash, rol, iniciales, documento, telefono, foto_base64, activo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+    `INSERT INTO employees (nombre, email, password_hash, rol, iniciales, documento, telefono, foto_base64, activo, privacidad_aceptada_en)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now()) RETURNING *`,
     [
       nombre.trim(),
       emailNormalizado,

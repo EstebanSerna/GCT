@@ -1,4 +1,4 @@
-# Gerencia Contable & Tributaria (demo)
+# Gerencia Contable & Tributaria
 
 Sitio comercial + portal interno para una firma de contadores. Incluye una
 página pública con embudo de captación de clientes y un asistente de IA,
@@ -40,40 +40,33 @@ pública.
 
 ### Sitio público (`/`)
 
-Página comercial con servicios, propuesta de valor, proceso de trabajo,
-testimonios y un formulario de captación de leads (sin backend real: solo
+Página comercial con servicios, propuesta de valor, proceso de trabajo, y
+un formulario de captación de leads (sin backend real todavía: solo
 confirma la intención de contacto). El botón flotante rosa abre el
 asistente de IA para preguntas generales de contabilidad e impuestos en
 Colombia.
 
 ### Portal de colaboradores (`/portal`)
 
-Login con usuario y contraseña (todos con la misma clave demo):
+Login con correo electrónico y contraseña real, contra la base de datos de
+producción. No hay usuarios ni contraseñas de demostración — este
+repositorio es público, así que no se documentan credenciales reales acá.
+Para probar el portal, pide una cuenta a un administrador o regístrate
+desde `/registro` (queda pendiente de aprobación).
 
-| Usuario | Rol |
-|---|---|
-| `yesica.zuluaga` | Gerente |
-| `camilo.ruiz`, `valentina.gomez`, `laura.cifuentes` | Contador/a |
-| `andres.salazar`, `sebastian.morales` | Auxiliar contable |
-
-Contraseña para todos: `Contable2026`
-
-- **Gerente** → panel de gerencia: semáforo de riesgo por cliente, carga
-  de trabajo del equipo, y el resumen que llegaría a WhatsApp al final
-  del día.
-- **Contador/a o auxiliar** → lista de tareas del día por cliente. Al
-  marcar una tarea como hecha, el sistema exige adjuntar un archivo de
-  evidencia antes de confirmar.
+- **Gerente/líder de equipo** → panel de gerencia: semáforo de riesgo por
+  cliente, carga de trabajo del equipo, y el resumen que llega a WhatsApp
+  al final del día.
+- **Contador/a o auxiliar** → lista de obligaciones pendientes por
+  cliente. Marcar una obligación como presentada o pagada exige adjuntar
+  el documento de soporte que lo respalda.
 - Desde cualquier rol, entra a "Clientes" para ver la hoja de vida
-  completa de cada empresa (régimen tributario, vencimientos,
-  documentos pendientes, historial).
-- "Próximamente" muestra la visión de hacia dónde puede crecer el
-  portal: alertas de venta cruzada, reporte ejecutivo mensual, y portal
-  para que el cliente final suba documentos.
+  completa de cada empresa (régimen tributario, vencimientos, documentos
+  de soporte, historial).
 
-Los datos de clientes y tareas son ficticios (demo, no persisten). Los
-**empleados, sesiones y marcaciones de asistencia sí son reales**, guardados
-en Postgres — ver la sección de abajo.
+Los empleados, clientes, obligaciones, documentos, sesiones y marcaciones
+de asistencia **son datos reales**, guardados en Postgres — ver la sección
+de abajo.
 
 ## App de asistencia (entrada/salida con GPS)
 

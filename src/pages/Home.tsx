@@ -3,13 +3,13 @@ import type { FormEvent } from "react";
 import {
   ArrowRight,
   CheckCircle2,
-  Quote,
   UserCheck,
   ShieldCheck,
   LayoutDashboard,
   BadgeCheck,
   Sparkles,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { MarketingNav } from "../components/marketing/MarketingNav";
 import { MarketingFooter } from "../components/marketing/MarketingFooter";
 import { ChatWidget } from "../components/marketing/ChatWidget";
@@ -21,14 +21,6 @@ const STATS = [
   { valor: "+120", etiqueta: "empresas asesoradas" },
   { valor: "12 años", etiqueta: "de experiencia" },
   { valor: "94%", etiqueta: "declaraciones a tiempo" },
-];
-
-const CLIENTES_LOGO = [
-  "Textiles La Piel",
-  "Ferretería El Tornillo",
-  "Clínica Sonrisa Plena",
-  "Sabores del Valle",
-  "Constructora Andes Vivo",
 ];
 
 const VALORES = [
@@ -74,24 +66,6 @@ const PASOS = [
     numero: "04",
     titulo: "Acompañamiento continuo",
     descripcion: "Empiezas con un contador asignado y visibilidad total desde el primer día.",
-  },
-];
-
-const TESTIMONIOS = [
-  {
-    cita: "Desde que Gerencia Contable & Tributaria lleva nuestra contabilidad, nunca más se nos ha pasado un vencimiento.",
-    nombre: "Marcela Uribe",
-    empresa: "Textiles La Piel S.A.S.",
-  },
-  {
-    cita: "El acompañamiento es cercano: entienden nuestro negocio y responden rápido por WhatsApp cuando los necesitamos.",
-    nombre: "Jorge Peláez",
-    empresa: "Ferretería El Tornillo Ltda.",
-  },
-  {
-    cita: "La planeación tributaria que nos hicieron nos ayudó a tomar mejores decisiones durante todo el año.",
-    nombre: "Dra. Paula Nieto",
-    empresa: "Clínica Sonrisa Plena",
   },
 ];
 
@@ -182,6 +156,13 @@ function LeadForm() {
       >
         Solicitar diagnóstico gratuito <ArrowRight size={16} />
       </button>
+      <p className="text-xs text-ash sm:col-span-2">
+        Al enviar este formulario aceptas nuestra{" "}
+        <Link to="/privacidad" className="text-magenta-deep underline underline-offset-2 hover:text-magenta">
+          Política de Privacidad
+        </Link>
+        .
+      </p>
     </form>
   );
 }
@@ -250,22 +231,6 @@ export default function Home() {
                 </p>
                 <p className="mt-1 text-[11px] text-paper/45 sm:text-xs">{s.etiqueta}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Tira de confianza */}
-      <section className="border-b border-ash-light/20 bg-paper px-6 py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 md:flex-row md:justify-between">
-          <p className="shrink-0 font-mono text-[11px] uppercase tracking-wider text-ash">
-            Empresas que ya confían en nosotros
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
-            {CLIENTES_LOGO.map((c) => (
-              <span key={c} className="font-display text-sm font-semibold text-ash-light">
-                {c}
-              </span>
             ))}
           </div>
         </div>
@@ -360,34 +325,6 @@ export default function Home() {
                 </span>
                 <h3 className="mt-4 font-display text-base font-semibold text-ink">{p.titulo}</h3>
                 <p className="mt-1.5 text-sm text-ash">{p.descripcion}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonios */}
-      <section className="relative overflow-hidden bg-ink px-6 py-20 text-paper">
-        <div className="pointer-events-none absolute right-0 top-0 h-96 w-96 rounded-full bg-magenta-soft opacity-[0.1] blur-[130px]" />
-        <div className="relative mx-auto max-w-6xl">
-          <div className="mx-auto max-w-xl text-center">
-            <p className="flex items-center justify-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-magenta">
-              <RingMark size={11} /> Clientes que confían en nosotros
-            </p>
-            <h2 className="mt-2 font-display text-3xl font-semibold text-white">Empresas que ya duermen tranquilas</h2>
-          </div>
-
-          <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
-            {TESTIMONIOS.map((t) => (
-              <div
-                key={t.nombre}
-                className="relative overflow-hidden rounded-xl border border-paper/10 bg-white/[0.03] p-6 transition-colors hover:border-magenta/25"
-              >
-                <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-magenta opacity-10 blur-2xl" />
-                <Quote size={20} className="text-magenta-soft" />
-                <p className="mt-4 text-sm leading-relaxed text-paper/75">&ldquo;{t.cita}&rdquo;</p>
-                <p className="mt-5 text-sm font-medium text-white">{t.nombre}</p>
-                <p className="text-xs text-paper/45">{t.empresa}</p>
               </div>
             ))}
           </div>

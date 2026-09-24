@@ -43,6 +43,20 @@ export default function PortalClienteInicio() {
   const [correo, setCorreo] = useState(clienteActual?.contacto.correo ?? "");
   const [avisoDocumento, setAvisoDocumento] = useState<string | null>(null);
 
+  // useMemo debe llamarse siempre en el mismo orden, así que corre antes
+  // del "return" condicional de más abajo (nunca se salta entre renders).
+  const porMes = useMemo(() => {
+    const grupos = new Map<string, Obligacion[]>();
+    if (!clienteActual) return [];
+    for (const o of clienteActual.obligaciones) {
+      const clave = o.vencimiento.slice(0, 7);
+      if (!grupos.has(clave)) grupos.set(clave, []);
+      grupos.get(clave)!.push(o);
+    }
+    for (const lista of grupos.values()) lista.sort((a, b) => a.vencimiento.localeCompare(b.vencimiento));
+    return Array.from(grupos.entries()).sort(([a], [b]) => b.localeCompare(a));
+  }, [clienteActual]);
+
   if (!clienteActual) {
     navigate("/portal-clientes");
     return null;
@@ -53,17 +67,6 @@ export default function PortalClienteInicio() {
 
   const pendientes = c.obligaciones.filter((o) => o.estado === "pendiente");
   const proxima = [...pendientes].sort((a, b) => a.vencimiento.localeCompare(b.vencimiento))[0] ?? null;
-
-  const porMes = useMemo(() => {
-    const grupos = new Map<string, Obligacion[]>();
-    for (const o of c.obligaciones) {
-      const clave = o.vencimiento.slice(0, 7);
-      if (!grupos.has(clave)) grupos.set(clave, []);
-      grupos.get(clave)!.push(o);
-    }
-    for (const lista of grupos.values()) lista.sort((a, b) => a.vencimiento.localeCompare(b.vencimiento));
-    return Array.from(grupos.entries()).sort(([a], [b]) => b.localeCompare(a));
-  }, [c]);
 
   function descargarCalendario() {
     descargarCsvGenerico(
@@ -105,6 +108,9 @@ export default function PortalClienteInicio() {
       </header>
 
       <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8 sm:py-10">
+        <div className="mb-5 rounded-lg border border-magenta/15 bg-magenta/5 px-4 py-2.5 text-xs text-magenta-deep">
+          Vista previa de diseño — la información de esta página es ilustrativa, no está conectada a tu cuenta real.
+        </div>
         <p className="font-mono text-[11px] uppercase tracking-wider text-ash">
           Cliente desde {formatoFechaCorta(c.clienteDesde)} · {aniosCliente} año{aniosCliente === 1 ? "" : "s"} con nosotros
         </p>
@@ -153,7 +159,7 @@ export default function PortalClienteInicio() {
 
           {editandoContacto ? (
             <div className="mt-3 flex flex-col gap-2.5">
-              <div className="flex items-center gap-2 rounded-lg border border-ink/10 bg-white px-3 py-2">
+              <div className="flex items-center gap-2 rounded-lg border border-ink/10 bg-white px-3 py-2 focus-within:border-magenta/40">
                 <Phone size={14} className="shrink-0 text-ash-light" />
                 <input
                   value={telefono}
@@ -162,7 +168,7 @@ export default function PortalClienteInicio() {
                   placeholder="Teléfono"
                 />
               </div>
-              <div className="flex items-center gap-2 rounded-lg border border-ink/10 bg-white px-3 py-2">
+              <div className="flex items-center gap-2 rounded-lg border border-ink/10 bg-white px-3 py-2 focus-within:border-magenta/40">
                 <Mail size={14} className="shrink-0 text-ash-light" />
                 <input
                   value={correo}

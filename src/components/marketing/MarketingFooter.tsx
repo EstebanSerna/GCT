@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { RingMark } from "../Stamp";
 import { serviciosSeed } from "../../data/servicios";
 import logo from "../../assets/logo-mark.png";
@@ -44,21 +44,38 @@ export function MarketingFooter() {
         <div>
           <p className="font-mono text-[11px] uppercase tracking-wider text-paper/40">Contacto</p>
           <ul className="mt-3 flex flex-col gap-2.5 text-sm text-paper/60">
-            <li className="flex items-center gap-2">
-              <Phone size={14} className="shrink-0 text-magenta" /> +57 300 000 0000
-            </li>
-            <li className="flex items-center gap-2">
-              <Mail size={14} className="shrink-0 text-magenta" /> contacto@gerenciacontable.co
+            <li>
+              <a href="#contacto" className="text-paper/60 hover:text-white">
+                Escríbenos por el formulario de contacto →
+              </a>
             </li>
             <li className="flex items-start gap-2">
               <MapPin size={14} className="mt-0.5 shrink-0 text-magenta" /> Medellín, Colombia
+            </li>
+          </ul>
+          <p className="mt-4 font-mono text-[11px] uppercase tracking-wider text-paper/40">Legal</p>
+          <ul className="mt-3 flex flex-col gap-2">
+            <li>
+              <Link to="/privacidad" className="text-sm text-paper/60 hover:text-white">
+                Política de Privacidad
+              </Link>
+            </li>
+            <li>
+              <Link to="/cookies" className="text-sm text-paper/60 hover:text-white">
+                Política de Cookies
+              </Link>
+            </li>
+            <li>
+              <Link to="/terminos" className="text-sm text-paper/60 hover:text-white">
+                Términos y Condiciones
+              </Link>
             </li>
           </ul>
         </div>
       </div>
 
       <div className="mx-auto mt-10 flex max-w-6xl flex-col items-center justify-between gap-3 border-t border-paper/10 pt-6 text-xs text-paper/35 md:flex-row">
-        <p>© {new Date().getFullYear()} Gerencia Contable &amp; Tributaria. Demo — datos ilustrativos.</p>
+        <p>© {new Date().getFullYear()} Gerencia Contable &amp; Tributaria.</p>
         <Link to="/portal" className="text-paper/40 hover:text-white">
           Portal de empleados →
         </Link>

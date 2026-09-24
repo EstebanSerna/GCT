@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { MessageCircle, X, Send, Sparkles } from "lucide-react";
 import logoMark from "../../assets/logo-mark.png";
 
@@ -34,6 +35,15 @@ export function ChatWidget() {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [mensajes, cargando, abierto]);
+
+  useEffect(() => {
+    if (!abierto) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setAbierto(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [abierto]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -71,7 +81,12 @@ export function ChatWidget() {
   return (
     <>
       {abierto && (
-        <div className="fixed bottom-24 right-6 z-40 flex h-[32rem] w-[22rem] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-ash-light/20 bg-white shadow-2xl shadow-black/20">
+        <div
+          role="dialog"
+          aria-modal="false"
+          aria-label="Asesor virtual por chat"
+          className="fixed bottom-24 right-6 z-40 flex h-[32rem] w-[22rem] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-ash-light/20 bg-white shadow-2xl shadow-black/20"
+        >
           <div className="flex items-center gap-2.5 bg-ink px-4 py-3.5">
             <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
               <span className="absolute inset-0 rounded-full bg-magenta/25 blur-md" aria-hidden />
@@ -144,7 +159,11 @@ export function ChatWidget() {
             </button>
           </form>
           <p className="border-t border-ash-light/10 bg-paper-dim px-4 py-2 text-center text-[10px] leading-snug text-ash">
-            Información general, no reemplaza una asesoría personalizada.
+            Información general, no reemplaza una asesoría personalizada. Ver{" "}
+            <Link to="/privacidad" className="underline underline-offset-2 hover:text-magenta-deep">
+              cómo tratamos tus datos
+            </Link>
+            .
           </p>
         </div>
       )}

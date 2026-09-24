@@ -6,9 +6,9 @@ export default function Terminos() {
     <LegalLayout titulo="Términos y Condiciones" actualizado="24 de septiembre de 2026">
       <Seccion titulo="1. Identificación">
         <p>
-          Este sitio es operado por Gerencia Contable &amp; Tributaria ("GCT"). Razón social:{" "}
-          <Pendiente>razón social completa</Pendiente>. NIT: <Pendiente>NIT</Pendiente>. Domicilio: Cra. 48 #12
-          Sur-148, Centro Profesional El Crucero, Torre 2, Oficina 102, El Poblado, Medellín, Colombia.
+          Este sitio es operado por Gerencia Contable &amp; Tributaria ("GCT"). Razón social: Gerencia Contable y
+          Tributaria GCT S.A.S. NIT: 901.093.985. Domicilio: Cra. 48 #12 Sur-148, Centro Profesional El Crucero,
+          Torre 2, Oficina 102, El Poblado, Medellín, Colombia.
         </p>
       </Seccion>
 

@@ -13,9 +13,9 @@ export default function Privacidad() {
 
       <Seccion titulo="1. Responsable del tratamiento">
         <p>
-          Razón social: <Pendiente>razón social completa de GCT</Pendiente>. NIT: <Pendiente>NIT</Pendiente>.
-          Domicilio: Cra. 48 #12 Sur-148, Centro Profesional El Crucero, Torre 2, Oficina 102, El Poblado, Medellín,
-          Colombia. Representante legal:{" "}
+          Razón social: Gerencia Contable y Tributaria GCT S.A.S. NIT: 901.093.985. Domicilio: Cra. 48 #12 Sur-148,
+          Centro Profesional El Crucero, Torre 2, Oficina 102, El Poblado, Medellín, Colombia. Representante
+          legal:{" "}
           <Pendiente>nombre del representante legal</Pendiente>. Mientras se confirma un correo dedicado para temas
           de datos personales, puedes escribirnos a través del{" "}
           <a href="/#contacto" className="text-magenta-deep underline underline-offset-2 hover:text-magenta">

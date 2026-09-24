@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { UserPlus, ShieldCheck, ShieldOff, KeyRound, Download, AlertTriangle, Trash2, CheckCircle2, UserCog } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { UserPlus, ShieldCheck, ShieldOff, KeyRound, Download, AlertTriangle, Trash2, CheckCircle2, UserCog, Eye } from "lucide-react";
 import { api, ApiError, type ApiEmpleado, type Rol, type RegistroAsistenciaAdmin } from "../lib/api";
 import { agruparPorDiaYEmpleado, descargarCsv } from "../lib/reporte";
 import { formatoNombre } from "../lib/texto";
 import { useApp } from "../context/AppContext";
+import { rutaInicioPara } from "../lib/rutas";
 
 type RolAsignable = Exclude<Rol, "super_admin">;
 
@@ -201,11 +203,25 @@ function FilaEmpleado({
 }) {
   const [ocupado, setOcupado] = useState(false);
   const [mostrarCoordinador, setMostrarCoordinador] = useState(false);
+  const { iniciarImpersonacion } = useApp();
+  const navigate = useNavigate();
 
   // Contador/auxiliar reportan a un líder de equipo; un líder de equipo
   // reporta a gerencia. Cada fila ofrece las opciones que le corresponden.
   const opcionesCoordinador = emp.rol === "lider_equipo" ? gerentesDisponibles : lideresDisponibles;
   const puedeAsignarCoordinador = emp.rol === "contador" || emp.rol === "auxiliar" || emp.rol === "lider_equipo";
+
+  async function verComo() {
+    if (!emp.rol) return;
+    setOcupado(true);
+    const resultado = await iniciarImpersonacion(emp.id);
+    setOcupado(false);
+    if (resultado.ok && resultado.rol) {
+      navigate(rutaInicioPara(resultado.rol));
+    } else {
+      window.alert(resultado.error ?? "No se pudo cambiar de perfil.");
+    }
+  }
 
   async function toggleActivo() {
     setOcupado(true);
@@ -327,6 +343,16 @@ function FilaEmpleado({
             <option value="lider_equipo">Líder de equipo</option>
             <option value="gerente">Gerente</option>
           </select>
+        )}
+        {emp.activo && emp.rol && emp.rol !== "super_admin" && (
+          <button
+            onClick={verComo}
+            disabled={ocupado}
+            className="rounded-md p-2 text-ash hover:bg-ink/5 hover:text-magenta-deep disabled:opacity-50"
+            title={`Ver el sistema como ${formatoNombre(emp.nombre)}`}
+          >
+            <Eye size={15} />
+          </button>
         )}
         <button
           onClick={resetPassword}

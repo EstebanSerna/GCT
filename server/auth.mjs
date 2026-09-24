@@ -103,7 +103,7 @@ export async function registroHandler(req, res) {
   res.status(201).json({ pendiente: false, token: session.token, employee: publicEmployee(employee) });
 }
 
-async function crearSesion(employeeId) {
+export async function crearSesion(employeeId) {
   const db = getPool();
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);

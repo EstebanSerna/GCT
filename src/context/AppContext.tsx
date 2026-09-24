@@ -2,8 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { ReactNode } from "react";
 import { usuarios, tareasSeed } from "../data/seed";
 import type { Usuario, Cliente, Tarea, EstadoObligacion } from "../data/seed";
-import { api, getToken, type ApiEmpleado, type ApiCliente, type Rol } from "../lib/api";
+import { api, getToken, setToken, type ApiEmpleado, type ApiCliente, type Rol } from "../lib/api";
 import { formatoNombre } from "../lib/texto";
+
+// Mientras el super admin está "viendo como" otra persona, el token real de
+// su propia cuenta se guarda acá aparte — así volver es instantáneo y no
+// depende de que recuerde su contraseña.
+const ADMIN_TOKEN_KEY = "gct_admin_token";
 
 // Convierte el empleado que devuelve el backend real al formato "Usuario"
 // que usa el resto de la app. El "id" es el mismo correo con el que inició
@@ -47,6 +52,9 @@ interface AppState {
   tareas: Tarea[];
   completarTarea: (tareaId: string, archivo: File) => void;
   usuarios: Usuario[];
+  impersonando: boolean;
+  iniciarImpersonacion: (id: number) => Promise<{ ok: boolean; error?: string; rol?: Rol }>;
+  salirDeImpersonacion: () => Promise<void>;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -57,6 +65,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [cargandoClientes, setCargandoClientes] = useState(false);
   const [tareas, setTareas] = useState<Tarea[]>(tareasSeed);
+  const [impersonando, setImpersonando] = useState(false);
 
   const cargarClientes = useCallback(() => {
     setCargandoClientes(true);
@@ -72,6 +81,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Al cargar la app, si hay un token guardado, valida la sesión contra el
   // servidor en vez de pedir usuario/contraseña de nuevo cada vez.
   useEffect(() => {
+    setImpersonando(!!localStorage.getItem(ADMIN_TOKEN_KEY));
     const token = getToken();
     if (!token) {
       setCargandoSesion(false);
@@ -108,7 +118,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
   function cerrarSesion() {
     setUsuarioActual(null);
     setClientes([]);
+    setImpersonando(false);
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
     void api.logout();
+  }
+
+  async function iniciarImpersonacion(id: number) {
+    try {
+      const { token, employee } = await api.impersonar(id);
+      const tokenPropio = getToken();
+      if (tokenPropio) localStorage.setItem(ADMIN_TOKEN_KEY, tokenPropio);
+      setToken(token);
+      setUsuarioActual(aUsuario(employee));
+      setImpersonando(true);
+      cargarClientes();
+      return { ok: true, rol: employee.rol as Rol };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "No se pudo cambiar de perfil." };
+    }
+  }
+
+  async function salirDeImpersonacion() {
+    const tokenPropio = localStorage.getItem(ADMIN_TOKEN_KEY);
+    if (!tokenPropio) return;
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    setToken(tokenPropio);
+    setImpersonando(false);
+    try {
+      const { employee } = await api.me();
+      setUsuarioActual(aUsuario(employee));
+      cargarClientes();
+    } catch {
+      setUsuarioActual(null);
+    }
   }
 
   async function actualizarEstadoObligacion(obligacionId: string, estado: EstadoObligacion) {
@@ -176,6 +218,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         tareas,
         completarTarea,
         usuarios,
+        impersonando,
+        iniciarImpersonacion,
+        salirDeImpersonacion,
       }}
     >
       {children}

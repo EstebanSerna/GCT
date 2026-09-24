@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, Fingerprint, ShieldCheck, CalendarDays, Users } from "lucide-react";
+import { Menu, X, Fingerprint, ShieldCheck, CalendarDays, Users, Eye } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "./Stamp";
@@ -15,7 +15,7 @@ const ROL_LABEL: Record<string, string> = {
 };
 
 export function Shell({ children }: { children: ReactNode }) {
-  const { usuarioActual, cerrarSesion } = useApp();
+  const { usuarioActual, cerrarSesion, impersonando, salirDeImpersonacion } = useApp();
   const navigate = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -141,7 +141,23 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className={`flex min-h-screen flex-col md:flex-row ${impersonando ? "pt-9" : ""}`}>
+      {impersonando && (
+        <div className="fixed inset-x-0 top-0 z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-magenta px-4 py-2 text-center text-xs font-medium text-white shadow-md">
+          <span className="flex items-center gap-1.5">
+            <Eye size={13} /> Viendo el sistema como <strong>{usuarioActual.nombre}</strong> ({ROL_LABEL[usuarioActual.rol] ?? usuarioActual.rol})
+          </span>
+          <button
+            onClick={async () => {
+              await salirDeImpersonacion();
+              navigate("/admin");
+            }}
+            className="rounded-full bg-white/20 px-3 py-0.5 font-semibold transition-colors hover:bg-white/30"
+          >
+            Volver a mi cuenta
+          </button>
+        </div>
+      )}
       {/* Barra superior — solo en móvil/tablet angosta */}
       <header className="flex shrink-0 items-center justify-between border-b border-paper/10 bg-ink px-4 py-3 text-paper md:hidden">
         {marca}

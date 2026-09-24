@@ -20,7 +20,7 @@ import {
   requireSuperAdmin,
 } from "./auth.mjs";
 import { createMarkHandler, getTodayHandler, getAllHandler } from "./attendance.mjs";
-import { listHandler, listEquipoHandler, createHandler, updateHandler, deleteHandler } from "./employees.mjs";
+import { listHandler, listEquipoHandler, createHandler, updateHandler, deleteHandler, impersonarHandler } from "./employees.mjs";
 import { listHandler as listClientesHandler, actualizarObligacionHandler, actualizarClienteHandler } from "./clientes.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -98,6 +98,7 @@ api.get("/employees", requireSuperAdmin, listHandler);
 api.post("/employees", requireSuperAdmin, createHandler);
 api.patch("/employees/:id", requireSuperAdmin, updateHandler);
 api.delete("/employees/:id", requireSuperAdmin, deleteHandler);
+api.post("/employees/:id/impersonate", requireSuperAdmin, impersonarHandler);
 
 // Vista liviana del equipo, para gerencia y líderes de equipo (reportes,
 // sin datos sensibles de más).

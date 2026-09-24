@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { getPool } from "./db.mjs";
 import { esEmailValido, validarPassword, inicialesDe } from "./validation.mjs";
+import { crearSesion } from "./auth.mjs";
 
 const ROLES_ASIGNABLES = ["gerente", "lider_equipo", "contador", "auxiliar"]; // super_admin no se asigna por acá
 
@@ -147,4 +148,36 @@ export async function deleteHandler(req, res) {
     return;
   }
   res.json({ ok: true });
+}
+
+/** POST /api/employees/:id/impersonate — super admin: abre una sesión real
+ * como esa persona, para auditar el sistema desde su perspectiva exacta
+ * (permisos incluidos, no es una simulación visual). Queda registrado en
+ * los logs del servidor quién entró como quién. */
+export async function impersonarHandler(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    res.status(400).json({ error: "ID inválido." });
+    return;
+  }
+  if (id === req.employee.id) {
+    res.status(400).json({ error: "Ya estás en tu propia cuenta." });
+    return;
+  }
+
+  const db = getPool();
+  const { rows } = await db.query("SELECT * FROM employees WHERE id = $1", [id]);
+  const objetivo = rows[0];
+  if (!objetivo) {
+    res.status(404).json({ error: "Empleado no encontrado." });
+    return;
+  }
+  if (!objetivo.activo || !objetivo.rol) {
+    res.status(400).json({ error: "Esa cuenta todavía no está activa." });
+    return;
+  }
+
+  const session = await crearSesion(objetivo.id);
+  console.log(`[gct] ${req.employee.email} (super admin) inició sesión como ${objetivo.email} (${objetivo.rol}) para auditoría — token de vuelta al cerrar.`);
+  res.json({ token: session.token, employee: publicEmployee(objetivo) });
 }

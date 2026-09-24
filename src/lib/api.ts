@@ -68,7 +68,7 @@ export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-function setToken(token: string | null) {
+export function setToken(token: string | null) {
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
 }
@@ -169,6 +169,11 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(input),
     });
+  },
+
+  /** Super admin: abre una sesión real como otro empleado, para auditar el sistema. */
+  impersonar(id: number) {
+    return request<{ token: string; employee: ApiEmpleado }>(`/api/employees/${id}/impersonate`, { method: "POST" });
   },
 
   eliminarEmpleado(id: number) {

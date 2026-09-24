@@ -16,7 +16,7 @@ export default function Privacidad() {
           Razón social: Gerencia Contable y Tributaria GCT S.A.S. NIT: 901.093.985. Domicilio: Cra. 48 #12 Sur-148,
           Centro Profesional El Crucero, Torre 2, Oficina 102, El Poblado, Medellín, Colombia. Representante
           legal:{" "}
-          <Pendiente>nombre del representante legal</Pendiente>. Mientras se confirma un correo dedicado para temas
+          Yesica Zuluaga. Mientras se confirma un correo dedicado para temas
           de datos personales, puedes escribirnos a través del{" "}
           <a href="/#contacto" className="text-magenta-deep underline underline-offset-2 hover:text-magenta">
             formulario de contacto
@@ -90,18 +90,18 @@ export default function Privacidad() {
           </li>
           <li>
             <strong>Railway</strong> — proveedor de infraestructura en la nube que aloja la base de datos y el
-            almacenamiento de documentos de la plataforma. Ubicación exacta del centro de datos:{" "}
-            <Pendiente>región de alojamiento a confirmar</Pendiente>.
+            almacenamiento de documentos de la plataforma, en centros de datos en Estados Unidos (California).
           </li>
           <li>
             <strong>HostCarriel / StackCP</strong> — aloja el sitio web público.
           </li>
         </ul>
         <p>
-          Dado que Anthropic y Meta procesan datos fuera de Colombia, esto puede constituir una transferencia
-          internacional de datos personales en los términos del artículo 26 de la Ley 1581 de 2012. El mecanismo
-          legal aplicable a esa transferencia (por ejemplo, consentimiento expreso del titular u otra causal
-          prevista en la ley) <Pendiente>requiere revisión jurídica</Pendiente> antes de darse por resuelto.
+          Dado que Anthropic, Meta y Railway procesan datos fuera de Colombia (en Estados Unidos), esto puede
+          constituir una transferencia internacional de datos personales en los términos del artículo 26 de la Ley
+          1581 de 2012. El mecanismo legal aplicable a esa transferencia (por ejemplo, consentimiento expreso del
+          titular u otra causal prevista en la ley) <Pendiente>requiere revisión jurídica</Pendiente> antes de
+          darse por resuelto.
         </p>
       </Seccion>
 

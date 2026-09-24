@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LegalLayout, Pendiente, Seccion } from "../components/marketing/LegalLayout";
+import { LegalLayout, Seccion } from "../components/marketing/LegalLayout";
 
 export default function Terminos() {
   return (
@@ -88,9 +88,7 @@ export default function Terminos() {
       <Seccion titulo="11. Legislación aplicable y jurisdicción">
         <p>
           Estos términos se rigen por las leyes de la República de Colombia. Para cualquier controversia, las
-          partes se someten a los jueces y tribunales competentes de Medellín, domicilio de GCT — la redacción
-          exacta de esta cláusula <Pendiente>debe confirmarse con un abogado</Pendiente> antes de considerarla
-          definitiva.
+          partes se someten a los jueces y tribunales competentes de Medellín, domicilio de GCT.
         </p>
       </Seccion>
 

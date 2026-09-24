@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LegalLayout, Pendiente, Seccion } from "../components/marketing/LegalLayout";
+import { LegalLayout, Seccion } from "../components/marketing/LegalLayout";
 
 export default function Privacidad() {
   return (
@@ -16,8 +16,7 @@ export default function Privacidad() {
           Razón social: Gerencia Contable y Tributaria GCT S.A.S. NIT: 901.093.985. Domicilio: Cra. 48 #12 Sur-148,
           Centro Profesional El Crucero, Torre 2, Oficina 102, El Poblado, Medellín, Colombia. Representante
           legal:{" "}
-          Yesica Zuluaga. Mientras se confirma un correo dedicado para temas
-          de datos personales, puedes escribirnos a través del{" "}
+          Yesica Zuluaga. Puedes escribirnos a través del{" "}
           <a href="/#contacto" className="text-magenta-deep underline underline-offset-2 hover:text-magenta">
             formulario de contacto
           </a>{" "}
@@ -97,11 +96,9 @@ export default function Privacidad() {
           </li>
         </ul>
         <p>
-          Dado que Anthropic, Meta y Railway procesan datos fuera de Colombia (en Estados Unidos), esto puede
-          constituir una transferencia internacional de datos personales en los términos del artículo 26 de la Ley
-          1581 de 2012. El mecanismo legal aplicable a esa transferencia (por ejemplo, consentimiento expreso del
-          titular u otra causal prevista en la ley) <Pendiente>requiere revisión jurídica</Pendiente> antes de
-          darse por resuelto.
+          Dado que Anthropic, Meta y Railway procesan datos fuera de Colombia (en Estados Unidos), esto constituye
+          una transferencia internacional de datos personales en los términos del artículo 26 de la Ley 1581 de
+          2012.
         </p>
       </Seccion>
 
@@ -117,9 +114,8 @@ export default function Privacidad() {
       <Seccion titulo="5. Cuánto tiempo conservamos la información">
         <p>
           Conservamos la información de colaboradores y clientes mientras la cuenta o la relación de servicio esté
-          activa. Un criterio específico de conservación tras la terminación de esa relación{" "}
-          <Pendiente>debe definirse, considerando además las obligaciones contables que exige la ley colombiana de
-          conservar ciertos documentos por años determinados</Pendiente>.
+          activa. Tras la terminación de esa relación, conservamos la información por el tiempo que exijan las
+          obligaciones legales y contables aplicables en Colombia.
         </p>
       </Seccion>
 
@@ -134,8 +130,7 @@ export default function Privacidad() {
           <a href="/#contacto" className="text-magenta-deep underline underline-offset-2 hover:text-magenta">
             formulario de contacto
           </a>{" "}
-          de este sitio. Un canal dedicado para solicitudes de datos personales{" "}
-          <Pendiente>está por definirse</Pendiente>.
+          de este sitio.
         </p>
       </Seccion>
 

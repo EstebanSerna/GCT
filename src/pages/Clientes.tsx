@@ -1,9 +1,27 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Search, ChevronLeft, CalendarClock, Cake, PartyPopper, Phone, Mail, Building2, IdCard, UserCircle2, Wallet, Loader2 } from "lucide-react";
+import {
+  Search,
+  ChevronLeft,
+  CalendarClock,
+  Cake,
+  PartyPopper,
+  Phone,
+  Mail,
+  Building2,
+  IdCard,
+  UserCircle2,
+  Wallet,
+  Loader2,
+  Paperclip,
+  Download,
+  RotateCcw,
+  FileText,
+} from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Stamp } from "../components/Stamp";
-import type { Cliente, Obligacion, EstadoObligacion } from "../data/seed";
+import type { Cliente, Obligacion, Documento } from "../data/seed";
+import { api } from "../lib/api";
 import { iconoObligacion, ESTADO_INFO, formatoFechaCorta, diasEntreFechas, etiquetaTiempo } from "../lib/obligaciones";
 import { proximaFechaAnual, aniosDesde, diaMesCorto, formatoPesos, CARTERA_INFO } from "../lib/relacion";
 
@@ -188,7 +206,7 @@ export default function Clientes() {
 }
 
 function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Date; onVolver: () => void }) {
-  const { usuarios, actualizarEstadoObligacion } = useApp();
+  const { usuarios, actualizarEstadoObligacion, subirSoporteObligacion } = useApp();
   const proxima = proximaPendiente(cliente);
   const pendientes = cliente.obligaciones.filter((o) => o.estado === "pendiente").length;
   const cumple = proximaFechaAnual(cliente.contacto.fechaNacimiento, hoy);
@@ -325,7 +343,13 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
             <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ash">{etiquetaMes(clave)}</p>
             <div className="flex flex-col gap-2.5">
               {obligaciones.map((o) => (
-                <ObligacionCard key={o.id} obligacion={o} hoy={hoy} onCambiarEstado={actualizarEstadoObligacion} />
+                <ObligacionCard
+                  key={o.id}
+                  obligacion={o}
+                  hoy={hoy}
+                  onCambiarEstado={actualizarEstadoObligacion}
+                  onSubirSoporte={subirSoporteObligacion}
+                />
               ))}
             </div>
           </div>
@@ -335,65 +359,153 @@ function DetalleCliente({ cliente, hoy, onVolver }: { cliente: Cliente; hoy: Dat
   );
 }
 
-const OPCIONES_ESTADO: EstadoObligacion[] = ["pendiente", "presentado", "pagado"];
+function formatoTamano(bytes: number | null): string {
+  if (!bytes) return "";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function ObligacionCard({
   obligacion,
   hoy,
   onCambiarEstado,
+  onSubirSoporte,
 }: {
   obligacion: Obligacion;
   hoy: Date;
-  onCambiarEstado: (obligacionId: string, estado: EstadoObligacion) => Promise<{ ok: boolean; error?: string }>;
+  onCambiarEstado: (obligacionId: string, estado: "pendiente") => Promise<{ ok: boolean; error?: string }>;
+  onSubirSoporte: (obligacionId: string, estado: "presentado" | "pagado", archivo: File) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [descargandoId, setDescargandoId] = useState<string | null>(null);
+  const estadoParaSubir = useRef<"presentado" | "pagado" | null>(null);
+  const inputArchivo = useRef<HTMLInputElement>(null);
   const Icono = iconoObligacion(obligacion.tipo);
   const estado = ESTADO_INFO[obligacion.estado];
   const dias = diasEntreFechas(hoy, obligacion.vencimiento);
 
-  async function cambiar(nuevoEstado: EstadoObligacion) {
-    if (nuevoEstado === obligacion.estado) return;
+  function pedirSoporte(nuevoEstado: "presentado" | "pagado") {
+    estadoParaSubir.current = nuevoEstado;
+    inputArchivo.current?.click();
+  }
+
+  async function archivoElegido(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    const nuevoEstado = estadoParaSubir.current;
+    estadoParaSubir.current = null;
+    if (!archivo || !nuevoEstado) return;
     setError(null);
     setGuardando(true);
-    const resultado = await onCambiarEstado(obligacion.id, nuevoEstado);
+    const resultado = await onSubirSoporte(obligacion.id, nuevoEstado, archivo);
     setGuardando(false);
-    if (!resultado.ok) setError(resultado.error ?? "No se pudo guardar el cambio.");
+    if (!resultado.ok) setError(resultado.error ?? "No se pudo subir el soporte.");
+  }
+
+  async function deshacer() {
+    setError(null);
+    setGuardando(true);
+    const resultado = await onCambiarEstado(obligacion.id, "pendiente");
+    setGuardando(false);
+    if (!resultado.ok) setError(resultado.error ?? "No se pudo deshacer el cambio.");
+  }
+
+  async function descargar(doc: Documento) {
+    setDescargandoId(doc.id);
+    try {
+      const { url } = await api.urlDescargaDocumento(doc.id);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      setError("No se pudo abrir el documento. Intenta de nuevo.");
+    } finally {
+      setDescargandoId(null);
+    }
   }
 
   return (
     <div className="flex items-start gap-3 rounded-xl border border-ink/10 bg-white/60 p-4">
+      <input
+        ref={inputArchivo}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
+        className="hidden"
+        onChange={archivoElegido}
+      />
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-magenta/10 text-magenta-deep">
         <Icono size={16} />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
           <h3 className="font-display text-[15px] font-semibold text-ink">{obligacion.tipo}</h3>
-          <div className="relative shrink-0">
-            <select
-              value={obligacion.estado}
-              disabled={guardando}
-              onChange={(e) => cambiar(e.target.value as EstadoObligacion)}
-              className={`appearance-none rounded-full border-[1.5px] ${estado.ring} bg-white/70 py-0.5 pl-5 pr-2 font-mono text-[10px] uppercase tracking-wide ${estado.text} disabled:opacity-60`}
-            >
-              {OPCIONES_ESTADO.map((op) => (
-                <option key={op} value={op}>
-                  {ESTADO_INFO[op].label}
-                </option>
-              ))}
-            </select>
+          <span
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border-[1.5px] ${estado.ring} bg-white/70 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${estado.text}`}
+          >
             {guardando ? (
-              <Loader2 size={9} className="absolute left-2 top-1/2 -translate-y-1/2 animate-spin text-ash" />
+              <Loader2 size={9} className="animate-spin text-ash" />
             ) : (
-              <span className={`absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${estado.dot}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${estado.dot}`} />
             )}
-          </div>
+            {estado.label}
+          </span>
         </div>
         <p className="mt-0.5 font-mono text-xs font-medium text-magenta-deep">
           {formatoFechaCorta(obligacion.vencimiento)}
           {obligacion.estado === "pendiente" && <> · {etiquetaTiempo(dias)}</>}
         </p>
         <p className="mt-1.5 text-xs text-ash">{obligacion.obligacion}</p>
+
+        {obligacion.documentos.length > 0 && (
+          <div className="mt-2.5 flex flex-col gap-1">
+            {obligacion.documentos.map((doc) => (
+              <button
+                key={doc.id}
+                onClick={() => descargar(doc)}
+                disabled={descargandoId === doc.id}
+                className="flex items-center gap-1.5 self-start rounded-md bg-ink/5 px-2 py-1 text-xs text-ink/70 transition-colors hover:bg-ink/10 hover:text-ink disabled:opacity-60"
+              >
+                {descargandoId === doc.id ? (
+                  <Loader2 size={11} className="shrink-0 animate-spin" />
+                ) : (
+                  <FileText size={11} className="shrink-0" />
+                )}
+                <span className="max-w-[220px] truncate">{doc.nombreArchivo}</span>
+                {doc.tamanoBytes != null && <span className="shrink-0 text-ink/40">{formatoTamano(doc.tamanoBytes)}</span>}
+                <Download size={11} className="shrink-0 text-ink/40" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {obligacion.estado === "pendiente" ? (
+            <>
+              <button
+                onClick={() => pedirSoporte("presentado")}
+                disabled={guardando}
+                className="flex items-center gap-1.5 rounded-full border border-ink/15 bg-white/80 px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-ink/70 transition-colors hover:border-magenta/40 hover:text-magenta-deep disabled:opacity-60"
+              >
+                <Paperclip size={11} /> Marcar presentado
+              </button>
+              <button
+                onClick={() => pedirSoporte("pagado")}
+                disabled={guardando}
+                className="flex items-center gap-1.5 rounded-full border border-ink/15 bg-white/80 px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-ink/70 transition-colors hover:border-magenta/40 hover:text-magenta-deep disabled:opacity-60"
+              >
+                <Paperclip size={11} /> Marcar pagado
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={deshacer}
+              disabled={guardando}
+              className="flex items-center gap-1.5 rounded-full border border-ink/10 bg-white/50 px-3 py-1 font-mono text-[10px] uppercase tracking-wide text-ash transition-colors hover:border-folio-red/40 hover:text-folio-red disabled:opacity-60"
+            >
+              <RotateCcw size={11} /> Deshacer, volver a pendiente
+            </button>
+          )}
+        </div>
+
         {error && <p className="mt-1.5 text-xs text-folio-red">{error}</p>}
       </div>
     </div>

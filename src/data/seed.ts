@@ -13,12 +13,24 @@ export interface Usuario {
 
 export type EstadoObligacion = "pendiente" | "presentado" | "pagado";
 
+export interface Documento {
+  id: string;
+  clienteId: string;
+  obligacionId: string | null;
+  nombreArchivo: string;
+  tipoMime: string | null;
+  tamanoBytes: number | null;
+  subidoPor: string | null;
+  subidoEn: string; // ISO datetime
+}
+
 export interface Obligacion {
   id: string;
   tipo: string; // ej. "Retención en la fuente", "Planilla de seguridad social"
   obligacion: string; // descripción completa, ej. "Retención en la fuente | Marzo de 2026 | Decreto 2229..."
   vencimiento: string; // fecha ISO yyyy-mm-dd
   estado: EstadoObligacion;
+  documentos: Documento[]; // el soporte que respalda un estado presentado/pagado
 }
 
 export type TipoPersona = "natural" | "juridica";

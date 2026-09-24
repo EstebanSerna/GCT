@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { usuarios, tareasSeed } from "../data/seed";
-import type { Usuario, Cliente, Tarea, EstadoObligacion } from "../data/seed";
-import { api, getToken, setToken, type ApiEmpleado, type ApiCliente, type Rol } from "../lib/api";
+import type { Usuario, Cliente, Tarea } from "../data/seed";
+import { api, getToken, setToken, type ApiEmpleado, type ApiCliente, type ApiObligacion, type Rol } from "../lib/api";
 import { formatoNombre } from "../lib/texto";
 
 // Mientras el super admin está "viendo como" otra persona, el token real de
@@ -47,8 +47,15 @@ interface AppState {
   cerrarSesion: () => void;
   clientes: Cliente[];
   cargandoClientes: boolean;
-  actualizarEstadoObligacion: (obligacionId: string, estado: EstadoObligacion) => Promise<{ ok: boolean; error?: string }>;
+  /** Solo para volver a "pendiente" (deshacer un error) — marcar como
+   * presentado/pagado exige el soporte, ver subirSoporteObligacion. */
+  actualizarEstadoObligacion: (obligacionId: string, estado: "pendiente") => Promise<{ ok: boolean; error?: string }>;
   reasignarResponsable: (clienteId: string, responsableId: number | null) => Promise<{ ok: boolean; error?: string }>;
+  subirSoporteObligacion: (
+    obligacionId: string,
+    estado: "presentado" | "pagado",
+    archivo: File
+  ) => Promise<{ ok: boolean; error?: string }>;
   tareas: Tarea[];
   completarTarea: (tareaId: string, archivo: File) => void;
   usuarios: Usuario[];
@@ -153,7 +160,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function actualizarEstadoObligacion(obligacionId: string, estado: EstadoObligacion) {
+  async function actualizarEstadoObligacion(obligacionId: string, estado: "pendiente") {
     const anterior = clientes;
     // Optimista: se ve el cambio de inmediato, y se revierte si el
     // servidor lo rechaza (por ejemplo, si ya no tiene ese cliente asignado).
@@ -169,6 +176,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       setClientes(anterior);
       return { ok: false, error: err instanceof Error ? err.message : "No se pudo actualizar." };
+    }
+  }
+
+  async function subirSoporteObligacion(obligacionId: string, estado: "presentado" | "pagado", archivo: File) {
+    try {
+      const { obligacion } = await api.subirSoporte(obligacionId, estado, archivo);
+      setClientes((prev) =>
+        prev.map((c) => ({
+          ...c,
+          obligaciones: c.obligaciones.map((o) => (o.id === obligacionId ? (obligacion as ApiObligacion) : o)),
+        }))
+      );
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "No se pudo subir el soporte." };
     }
   }
 
@@ -214,6 +236,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clientes,
         cargandoClientes,
         actualizarEstadoObligacion,
+        subirSoporteObligacion,
         reasignarResponsable,
         tareas,
         completarTarea,

@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2 } from "lucide-react";
+import { Paperclip, Loader2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { Stamp } from "../components/Stamp";
 import { EvidenciaModal } from "../components/EvidenciaModal";
@@ -30,9 +30,34 @@ function riesgoDe(c: Cliente, hoy: Date): "verde" | "amber" | "rojo" {
 }
 
 export default function ContadorDashboard() {
-  const { usuarioActual, tareas, clientes, completarTarea, actualizarEstadoObligacion } = useApp();
+  const { usuarioActual, tareas, clientes, completarTarea, subirSoporteObligacion } = useApp();
   const [tareaActiva, setTareaActiva] = useState<Tarea | null>(null);
   const [guardando, setGuardando] = useState<Set<string>>(new Set());
+  const [errorSoporte, setErrorSoporte] = useState<string | null>(null);
+  const obligacionParaSubir = useRef<string | null>(null);
+  const inputArchivo = useRef<HTMLInputElement>(null);
+
+  function pedirSoporte(obligacionId: string) {
+    obligacionParaSubir.current = obligacionId;
+    inputArchivo.current?.click();
+  }
+
+  async function archivoElegido(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    const obligacionId = obligacionParaSubir.current;
+    obligacionParaSubir.current = null;
+    if (!archivo || !obligacionId) return;
+    setErrorSoporte(null);
+    setGuardando((prev) => new Set(prev).add(obligacionId));
+    const resultado = await subirSoporteObligacion(obligacionId, "presentado", archivo);
+    setGuardando((prev) => {
+      const next = new Set(prev);
+      next.delete(obligacionId);
+      return next;
+    });
+    if (!resultado.ok) setErrorSoporte(resultado.error ?? "No se pudo subir el soporte.");
+  }
 
   const hoy = useMemo(() => new Date(), []);
   const mensajes = usuarioActual?.rol === "auxiliar" ? MENSAJES_AUXILIAR : MENSAJES_CONTADOR;
@@ -71,6 +96,13 @@ export default function ContadorDashboard() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8 sm:px-8 sm:py-10">
+      <input
+        ref={inputArchivo}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*"
+        className="hidden"
+        onChange={archivoElegido}
+      />
       <p className="font-mono text-[11px] uppercase tracking-wider text-ash">
         {new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}
       </p>
@@ -78,6 +110,7 @@ export default function ContadorDashboard() {
       <p className="mt-2 text-sm text-ash">
         {misClientes.length} clientes a tu cargo · {pendientes.length} pendientes en total
       </p>
+      {errorSoporte && <p className="mt-2 text-xs text-folio-red">{errorSoporte}</p>}
 
       <div className="mt-6">
         <MensajeDelDia mensaje={mensajeDelDia(mensajes)} />
@@ -155,18 +188,10 @@ export default function ContadorDashboard() {
                 </Link>
                 <button
                   disabled={seEstaGuardando}
-                  onClick={async () => {
-                    setGuardando((prev) => new Set(prev).add(obligacionId));
-                    await actualizarEstadoObligacion(obligacionId, "presentado");
-                    setGuardando((prev) => {
-                      const next = new Set(prev);
-                      next.delete(obligacionId);
-                      return next;
-                    });
-                  }}
+                  onClick={() => pedirSoporte(obligacionId)}
                   className="flex shrink-0 items-center gap-1.5 rounded-md bg-ink px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-magenta disabled:opacity-60"
                 >
-                  {seEstaGuardando ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  {seEstaGuardando ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
                   Presentado
                 </button>
               </div>

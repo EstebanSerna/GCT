@@ -3,6 +3,7 @@
 // what Railway runs.
 import express from "express";
 import helmet from "helmet";
+import multer from "multer";
 import { rateLimit } from "express-rate-limit";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,7 +22,13 @@ import {
 } from "./auth.mjs";
 import { createMarkHandler, getTodayHandler, getAllHandler } from "./attendance.mjs";
 import { listHandler, listEquipoHandler, createHandler, updateHandler, deleteHandler, impersonarHandler } from "./employees.mjs";
-import { listHandler as listClientesHandler, actualizarObligacionHandler, actualizarClienteHandler } from "./clientes.mjs";
+import {
+  listHandler as listClientesHandler,
+  actualizarObligacionHandler,
+  actualizarClienteHandler,
+  subirSoporteHandler,
+  descargarDocumentoHandler,
+} from "./clientes.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "..", "dist");
@@ -110,6 +117,13 @@ api.get("/employees/equipo", requireLiderEquipoOAbove, listEquipoHandler);
 api.get("/clientes", requireAuth, listClientesHandler);
 api.patch("/clientes/:id", requireAuth, actualizarClienteHandler);
 api.patch("/obligaciones/:id", requireAuth, actualizarObligacionHandler);
+
+// Soportes: multer procesa el multipart ANTES de llegar al handler —
+// convive bien con el express.json() de arriba porque ese solo actúa
+// cuando el Content-Type es application/json.
+const subidaSoporte = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
+api.post("/obligaciones/:id/soporte", requireAuth, subidaSoporte.single("archivo"), subirSoporteHandler);
+api.get("/documentos/:id/descargar", requireAuth, descargarDocumentoHandler);
 
 app.use("/api", api);
 

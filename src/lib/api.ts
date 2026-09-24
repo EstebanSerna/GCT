@@ -41,6 +41,17 @@ export interface RegistroAsistenciaAdmin extends RegistroAsistencia {
 
 export type EstadoObligacion = "pendiente" | "presentado" | "pagado";
 
+export interface ApiDocumento {
+  id: string;
+  clienteId: string;
+  obligacionId: string | null;
+  nombreArchivo: string;
+  tipoMime: string | null;
+  tamanoBytes: number | null;
+  subidoPor: string | null;
+  subidoEn: string;
+}
+
 export interface ApiObligacion {
   id: string;
   clienteId: string;
@@ -48,6 +59,7 @@ export interface ApiObligacion {
   obligacion: string;
   vencimiento: string;
   estado: EstadoObligacion;
+  documentos: ApiDocumento[];
 }
 
 export interface ApiCliente {
@@ -85,6 +97,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new ApiError((data && data.error) || "No se pudo conectar con el servidor.");
+  }
+  return data as T;
+}
+
+// Para subir archivos: sin Content-Type manual, el navegador arma el
+// boundary del multipart solo (por eso no reutiliza request()).
+async function requestFormData<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const res = await fetch(`${API_BASE}${path}`, { method: "POST", headers, body: formData });
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
@@ -201,6 +229,19 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ responsableId }),
     });
+  },
+
+  /** Marca una obligación como presentada/pagada Y sube el soporte que lo respalda, en un solo paso. */
+  subirSoporte(obligacionId: string, estado: "presentado" | "pagado", archivo: File) {
+    const formData = new FormData();
+    formData.append("estado", estado);
+    formData.append("archivo", archivo);
+    return requestFormData<{ obligacion: ApiObligacion }>(`/api/obligaciones/${obligacionId}/soporte`, formData);
+  },
+
+  /** URL firmada temporal (5 min) para descargar un documento ya subido. */
+  urlDescargaDocumento(documentoId: string) {
+    return request<{ url: string }>(`/api/documentos/${documentoId}/descargar`);
   },
 };
 

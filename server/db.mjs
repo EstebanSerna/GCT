@@ -110,6 +110,23 @@ const MIGRATIONS = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_obligaciones_cliente ON obligaciones (cliente_id, vencimiento)`,
   `CREATE INDEX IF NOT EXISTS idx_clientes_responsable ON clientes (responsable_id)`,
+  // Soportes subidos al bucket de Railway. Si obligacion_id es NULL es un
+  // documento general del cliente (RUT, cámara de comercio...); si tiene
+  // valor, es el soporte de esa obligación puntual (lo que exige marcarla
+  // como presentada/pagada).
+  `CREATE TABLE IF NOT EXISTS documentos (
+    id SERIAL PRIMARY KEY,
+    cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    obligacion_id INTEGER REFERENCES obligaciones(id) ON DELETE CASCADE,
+    nombre_archivo TEXT NOT NULL,
+    storage_key TEXT NOT NULL,
+    tipo_mime TEXT,
+    tamano_bytes INTEGER,
+    subido_por INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+    subido_en TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_documentos_obligacion ON documentos (obligacion_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_documentos_cliente ON documentos (cliente_id)`,
 ];
 
 export async function migrate({ logger = console } = {}) {

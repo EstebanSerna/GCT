@@ -60,10 +60,13 @@ export function createMarkHandler(tipo) {
     const dentroDeRango = distancia <= office.radius;
 
     const db = getPool();
+    // La distancia/rango se guarda siempre (la gerente la necesita en su
+    // informe), pero no se le devuelve al propio empleado — no queremos que
+    // sienta que lo estamos vigilando, solo confirmamos que quedó marcado.
     const { rows } = await db.query(
       `INSERT INTO attendance_records (employee_id, tipo, lat, lng, precision_metros, distancia_oficina_metros, dentro_de_rango)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, tipo, registrado_en, distancia_oficina_metros, dentro_de_rango`,
+       RETURNING id, tipo, registrado_en`,
       [req.employee.id, tipo, lat, lng, precision ?? null, distancia, dentroDeRango]
     );
 
@@ -83,11 +86,12 @@ export function createMarkHandler(tipo) {
   };
 }
 
-/** GET /api/attendance/today — the current employee's records for today. */
+/** GET /api/attendance/today — the current employee's records for today.
+ * No incluye distancia/rango — eso es solo para el informe de gerencia. */
 export async function getTodayHandler(req, res) {
   const db = getPool();
   const { rows } = await db.query(
-    `SELECT id, tipo, registrado_en, dentro_de_rango, distancia_oficina_metros
+    `SELECT id, tipo, registrado_en
      FROM attendance_records
      WHERE employee_id = $1 AND registrado_en::date = now()::date
      ORDER BY registrado_en ASC`,

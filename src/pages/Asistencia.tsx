@@ -39,7 +39,7 @@ export default function Asistencia() {
   const [registros, setRegistros] = useState<RegistroAsistencia[]>([]);
   const [cargandoLista, setCargandoLista] = useState(true);
   const [marcando, setMarcando] = useState<"entrada" | "salida" | null>(null);
-  const [aviso, setAviso] = useState<{ tipo: "ok" | "fuera" | "error"; texto: string } | null>(null);
+  const [aviso, setAviso] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
 
   useEffect(() => {
     api
@@ -63,14 +63,10 @@ export default function Asistencia() {
         posicion.coords.accuracy
       );
       setRegistros((prev) => [...prev, record]);
-      setAviso(
-        record.dentro_de_rango
-          ? { tipo: "ok", texto: `${tipo === "entrada" ? "Entrada" : "Salida"} registrada a las ${horaDe(record.registrado_en)} — dentro del rango de la oficina.` }
-          : {
-              tipo: "fuera",
-              texto: `${tipo === "entrada" ? "Entrada" : "Salida"} registrada a las ${horaDe(record.registrado_en)}, pero estás a ${Math.round(record.distancia_oficina_metros)} m de la oficina.`,
-            }
-      );
+      setAviso({
+        tipo: "ok",
+        texto: `${tipo === "entrada" ? "Entrada" : "Salida"} registrada a las ${horaDe(record.registrado_en)}.`,
+      });
     } catch (err) {
       const texto = err instanceof ApiError ? err.message : mensajeErrorGeo(err);
       setAviso({ tipo: "error", texto });
@@ -133,7 +129,7 @@ export default function Asistencia() {
 
       {!yaMarco("entrada") && (
         <p className="mt-3 flex items-center gap-1.5 text-xs text-ash">
-          <MapPin size={13} /> Vamos a pedirte permiso de ubicación para confirmar que estás en la oficina.
+          <MapPin size={13} /> Te vamos a pedir tu ubicación para dejar marcada tu entrada.
         </p>
       )}
 
@@ -142,9 +138,7 @@ export default function Asistencia() {
           className={`mt-5 flex items-start gap-2.5 rounded-lg border px-4 py-3 text-sm ${
             aviso.tipo === "ok"
               ? "border-folio-green/30 bg-folio-green/5 text-folio-green"
-              : aviso.tipo === "fuera"
-                ? "border-folio-amber/30 bg-folio-amber/5 text-folio-amber"
-                : "border-folio-red/30 bg-folio-red/10 text-folio-red"
+              : "border-folio-red/30 bg-folio-red/10 text-folio-red"
           }`}
         >
           {aviso.tipo === "ok" ? (

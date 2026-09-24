@@ -21,12 +21,13 @@ export interface ApiEmpleado {
   coordinadorId: number | null;
 }
 
+// El propio empleado nunca ve distancia/rango de la oficina — eso es solo
+// para el informe de gerencia (ver RegistroAsistenciaAdmin), para no dar la
+// sensación de estar vigilándolo.
 export interface RegistroAsistencia {
   id: number;
   tipo: "entrada" | "salida";
   registrado_en: string;
-  dentro_de_rango: boolean;
-  distancia_oficina_metros: number;
 }
 
 export interface RegistroAsistenciaAdmin extends RegistroAsistencia {
@@ -34,6 +35,8 @@ export interface RegistroAsistenciaAdmin extends RegistroAsistencia {
   nombre: string;
   iniciales: string;
   rol: Rol;
+  dentro_de_rango: boolean;
+  distancia_oficina_metros: number;
 }
 
 export type EstadoObligacion = "pendiente" | "presentado" | "pagado";

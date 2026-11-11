@@ -1,12 +1,12 @@
-name: Deploy GCT por SFTP
+name: Deploy GCT por SSH
 
 # Se ejecuta automáticamente cada vez que hay un push a "main".
 # También se puede lanzar manualmente desde la pestaña "Actions" en GitHub.
 #
-# Nota: se usa SFTP (puerto 22) en vez de FTP normal porque StackCP (el
-# hosting de HostCarriel) corta la conexión de datos FTP cuando viene desde
-# IPs de datacenters como las de GitHub Actions. SFTP usa un solo canal y
-# no tiene ese problema.
+# Se sube con rsync por SSH usando una llave dedicada a este despliegue
+# (secreto SSH_PRIVATE_KEY), sin contraseñas. La huella del servidor está
+# fijada abajo: si algún día cambia, el despliegue se detiene en vez de
+# confiar a ciegas en otro servidor.
 on:
   push:
     branches: [main]
@@ -16,8 +16,14 @@ concurrency:
   group: deploy-main
   cancel-in-progress: false
 
+env:
+  SSH_HOST: ssh.hostcarriel.com
+  SSH_USER: gct.com.co
+  # Huella pública ED25519 del servidor de HostCarriel (no es un secreto).
+  SSH_HOST_FINGERPRINT: "SHA256:3oOALmFXzXtrWae4pbQoZM1eLxTccrGYUG54/H3b6gA"
+
 jobs:
-  sftp-deploy:
+  ssh-deploy:
     name: Compilar y subir el sitio
     runs-on: ubuntu-latest
     steps:
@@ -41,21 +47,31 @@ jobs:
           VITE_CHAT_API_URL: https://api.gct.com.co/api/chat
           VITE_API_BASE_URL: https://api.gct.com.co
 
-      - name: Crear carpetas nuevas en el servidor (SFTP-Deploy-Action no las crea en modo sftp_only)
+      - name: Preparar la conexión SSH (llave + verificación del servidor)
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          which sshpass > /dev/null 2>&1 || sudo apt-get install -y sshpass
-          sshpass -p "${{ secrets.FTP_PASSWORD }}" sftp -oStrictHostKeyChecking=no -oBatchMode=no -P 22 "${{ secrets.FTP_USERNAME }}@${{ secrets.FTP_SERVER }}" << 'EOF'
-          -mkdir /public_html/assets
-          bye
-          EOF
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "::error::Falta el secreto SSH_PRIVATE_KEY (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -t ed25519 "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          ACTUAL=$(ssh-keygen -lf ~/.ssh/known_hosts | awk '{print $2}')
+          if [ "$ACTUAL" != "$SSH_HOST_FINGERPRINT" ]; then
+            echo "::error::La huella del servidor no coincide (recibida: $ACTUAL). Despliegue detenido."
+            exit 1
+          fi
 
-      - name: Subir por SFTP a public_html
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: 22
-          local_path: "./dist/*"
-          remote_path: "/public_html/"
-          sftp_only: true
+      - name: Subir el sitio con rsync
+        run: |
+          SSH="ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o ServerAliveInterval=30 -o ConnectTimeout=30"
+          OPTS="-rlz --omit-dir-times --chmod=D755,F644 -e"
+          # 1) Primero los archivos con nombre único (assets), para que el
+          #    sitio nunca apunte a archivos que todavía no existen.
+          rsync $OPTS "$SSH" dist/assets/ "$SSH_USER@$SSH_HOST:public_html/assets/"
+          # 2) Después todo lo demás, incluido index.html que enlaza a lo anterior.
+          rsync $OPTS "$SSH" --exclude='/assets/' dist/ "$SSH_USER@$SSH_HOST:public_html/"
+          echo "Sitio publicado."

@@ -1,8 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { usuarios, tareasSeed } from "../data/seed";
-import type { Usuario, Cliente, Tarea } from "../data/seed";
-import { api, getToken, setToken, type ApiEmpleado, type ApiCliente, type ApiObligacion, type Rol } from "../lib/api";
+import { usuarios } from "../data/seed";
+import type { Usuario, Cliente } from "../data/seed";
+import {
+  api,
+  getToken,
+  setToken,
+  type ApiEmpleado,
+  type ApiCliente,
+  type ApiObligacion,
+  type ApiTarea,
+  type NuevaTarea,
+  type CambiosTarea,
+  type Rol,
+} from "../lib/api";
 import { formatoNombre } from "../lib/texto";
 
 // Mientras el super admin está "viendo como" otra persona, el token real de
@@ -56,8 +67,9 @@ interface AppState {
     estado: "presentado" | "pagado",
     archivo: File
   ) => Promise<{ ok: boolean; error?: string }>;
-  tareas: Tarea[];
-  completarTarea: (tareaId: string, archivo: File) => void;
+  tareas: ApiTarea[];
+  crearTarea: (input: NuevaTarea) => Promise<{ ok: boolean; error?: string }>;
+  actualizarTarea: (tareaId: string, cambios: CambiosTarea) => Promise<{ ok: boolean; error?: string }>;
   usuarios: Usuario[];
   impersonando: boolean;
   iniciarImpersonacion: (id: number) => Promise<{ ok: boolean; error?: string; rol?: Rol }>;
@@ -71,9 +83,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [cargandoSesion, setCargandoSesion] = useState(true);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [cargandoClientes, setCargandoClientes] = useState(false);
-  const [tareas, setTareas] = useState<Tarea[]>(tareasSeed);
+  const [tareas, setTareas] = useState<ApiTarea[]>([]);
   const [impersonando, setImpersonando] = useState(false);
 
+  // Clientes y tareas se cargan juntos: son lo que cada pantalla necesita
+  // apenas hay sesión (o cuando el super admin cambia de perfil).
   const cargarClientes = useCallback(() => {
     setCargandoClientes(true);
     api
@@ -83,6 +97,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         /* sin sesión válida o sin backend (dev local) — se queda vacío */
       })
       .finally(() => setCargandoClientes(false));
+    api
+      .tareas()
+      .then(({ tareas: recibidas }) => setTareas(recibidas))
+      .catch(() => {
+        /* igual que arriba */
+      });
   }, []);
 
   // Al cargar la app, si hay un token guardado, valida la sesión contra el
@@ -125,6 +145,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   function cerrarSesion() {
     setUsuarioActual(null);
     setClientes([]);
+    setTareas([]);
     setImpersonando(false);
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     void api.logout();
@@ -206,23 +227,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function completarTarea(tareaId: string, archivo: File) {
-    setTareas((prev) =>
-      prev.map((t) =>
-        t.id === tareaId
-          ? {
-              ...t,
-              estado: "completada",
-              evidenciaNombre: archivo.name,
-              evidenciaUrl: URL.createObjectURL(archivo),
-              completadaHora: new Date().toLocaleTimeString("es-CO", {
-                hour: "numeric",
-                minute: "2-digit",
-              }),
-            }
-          : t
-      )
-    );
+  async function crearTarea(input: NuevaTarea) {
+    try {
+      const { tarea } = await api.crearTarea(input);
+      setTareas((prev) => [tarea, ...prev]);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "No se pudo crear la tarea." };
+    }
+  }
+
+  async function actualizarTarea(tareaId: string, cambios: CambiosTarea) {
+    try {
+      const { tarea } = await api.actualizarTarea(tareaId, cambios);
+      setTareas((prev) => prev.map((t) => (t.id === tareaId ? tarea : t)));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "No se pudo actualizar la tarea." };
+    }
   }
 
   return (
@@ -239,7 +261,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         subirSoporteObligacion,
         reasignarResponsable,
         tareas,
-        completarTarea,
+        crearTarea,
+        actualizarTarea,
         usuarios,
         impersonando,
         iniciarImpersonacion,

@@ -29,6 +29,7 @@ import {
   subirSoporteHandler,
   descargarDocumentoHandler,
 } from "./clientes.mjs";
+import { listarHandler as listarTareasHandler, crearHandler as crearTareaHandler, actualizarHandler as actualizarTareaHandler, historialHandler as historialTareaHandler } from "./tareas.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "..", "dist");
@@ -124,6 +125,14 @@ api.patch("/obligaciones/:id", requireAuth, actualizarObligacionHandler);
 const subidaSoporte = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
 api.post("/obligaciones/:id/soporte", requireAuth, subidaSoporte.single("archivo"), subirSoporteHandler);
 api.get("/documentos/:id/descargar", requireAuth, descargarDocumentoHandler);
+
+// Tareas por cliente: gerencia ve y asigna todo; la líder de equipo asigna y
+// ve lo de su equipo; cada quien ve las suyas. Los permisos finos viven en
+// el handler (dependen de la tarea concreta, no solo del rol).
+api.get("/tareas", requireAuth, listarTareasHandler);
+api.post("/tareas", requireLiderEquipoOAbove, crearTareaHandler);
+api.patch("/tareas/:id", requireAuth, actualizarTareaHandler);
+api.get("/tareas/:id/historial", requireAuth, historialTareaHandler);
 
 app.use("/api", api);
 

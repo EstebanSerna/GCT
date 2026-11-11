@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Empleados from "./pages/Empleados";
 import Calendario from "./pages/Calendario";
 import EquipoDashboard from "./pages/EquipoDashboard";
+import Tareas from "./pages/Tareas";
 import PortalClienteLogin from "./pages/PortalClienteLogin";
 import PortalClienteInicio from "./pages/PortalClienteInicio";
 import Privacidad from "./pages/Privacidad";
@@ -44,6 +45,7 @@ function Rutas() {
       <Route path="/contador" element={<Protegida roles={["contador", "auxiliar"]}><ContadorDashboard /></Protegida>} />
       <Route path="/admin" element={<Protegida roles={["gerente", "super_admin"]}><AdminDashboard /></Protegida>} />
       <Route path="/equipo" element={<Protegida roles={["lider_equipo"]}><EquipoDashboard /></Protegida>} />
+      <Route path="/tareas" element={<Protegida roles={["gerente", "super_admin", "lider_equipo"]}><Tareas /></Protegida>} />
       <Route path="/empleados" element={<Protegida roles={["super_admin"]}><Empleados /></Protegida>} />
       <Route path="/clientes" element={<Protegida><Clientes /></Protegida>} />
       <Route path="/clientes/:id" element={<Protegida><Clientes /></Protegida>} />

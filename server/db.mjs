@@ -130,6 +130,36 @@ const MIGRATIONS = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_documentos_obligacion ON documentos (obligacion_id)`,
   `CREATE INDEX IF NOT EXISTS idx_documentos_cliente ON documentos (cliente_id)`,
+  // Tareas que gerencia (o una líder de equipo, sobre su equipo) le asigna a
+  // alguien para un cliente. No se borran: se "cancelan", para que quede el
+  // rastro que gerencia necesita para auditar. Si la persona asignada se
+  // elimina, la tarea queda sin asignar en vez de desaparecer.
+  `CREATE TABLE IF NOT EXISTS tareas (
+    id SERIAL PRIMARY KEY,
+    cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    titulo TEXT NOT NULL,
+    descripcion TEXT,
+    asignado_a INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+    creado_por INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+    prioridad TEXT NOT NULL DEFAULT 'normal' CHECK (prioridad IN ('baja','normal','alta','urgente')),
+    fecha_limite DATE,
+    estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente','en_progreso','completada','cancelada')),
+    nota_cierre TEXT,
+    completada_en TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_tareas_asignado ON tareas (asignado_a, estado)`,
+  `CREATE INDEX IF NOT EXISTS idx_tareas_cliente ON tareas (cliente_id)`,
+  `CREATE TABLE IF NOT EXISTS tarea_eventos (
+    id SERIAL PRIMARY KEY,
+    tarea_id INTEGER NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
+    employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+    accion TEXT NOT NULL,
+    detalle TEXT,
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_tarea_eventos_tarea ON tarea_eventos (tarea_id, creado_en)`,
 ];
 
 export async function migrate({ logger = console } = {}) {

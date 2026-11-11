@@ -2,12 +2,16 @@ import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Paperclip, Loader2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { Stamp } from "../components/Stamp";
-import { EvidenciaModal } from "../components/EvidenciaModal";
+import { CompletarTareaModal } from "../components/CompletarTareaModal";
 import { MensajeDelDia } from "../components/MensajeDelDia";
 import { MENSAJES_CONTADOR, MENSAJES_AUXILIAR, mensajeDelDia } from "../data/mensajes";
-import type { Tarea, Cliente } from "../data/seed";
+import type { Cliente } from "../data/seed";
+import type { ApiTarea } from "../lib/api";
 import { diasEntreFechas, etiquetaTiempo, formatoFechaCorta, iconoObligacion } from "../lib/obligaciones";
+import { ESTADO_TAREA_LABEL, PRIORIDAD_INFO, estaAbierta, estaVencida, hoyISO } from "../lib/tareas";
+
+// Las tareas sin fecha límite van al final de la lista.
+const SIN_FECHA = "9999-12-31";
 
 interface ItemPendiente {
   fecha: string; // ISO
@@ -16,7 +20,7 @@ interface ItemPendiente {
   clienteId?: string;
   obligacionId?: string;
   titulo: string;
-  tarea?: Tarea;
+  tarea?: ApiTarea;
 }
 
 function riesgoDe(c: Cliente, hoy: Date): "verde" | "amber" | "rojo" {
@@ -30,8 +34,8 @@ function riesgoDe(c: Cliente, hoy: Date): "verde" | "amber" | "rojo" {
 }
 
 export default function ContadorDashboard() {
-  const { usuarioActual, tareas, clientes, completarTarea, subirSoporteObligacion } = useApp();
-  const [tareaActiva, setTareaActiva] = useState<Tarea | null>(null);
+  const { usuarioActual, tareas, clientes, actualizarTarea, subirSoporteObligacion } = useApp();
+  const [tareaActiva, setTareaActiva] = useState<ApiTarea | null>(null);
   const [guardando, setGuardando] = useState<Set<string>>(new Set());
   const [errorSoporte, setErrorSoporte] = useState<string | null>(null);
   const obligacionParaSubir = useRef<string | null>(null);
@@ -59,6 +63,19 @@ export default function ContadorDashboard() {
     if (!resultado.ok) setErrorSoporte(resultado.error ?? "No se pudo subir el soporte.");
   }
 
+  async function cambiarEstadoTarea(tareaId: string, estado: "en_progreso") {
+    const clave = `t-${tareaId}`;
+    setErrorSoporte(null);
+    setGuardando((prev) => new Set(prev).add(clave));
+    const resultado = await actualizarTarea(tareaId, { estado });
+    setGuardando((prev) => {
+      const next = new Set(prev);
+      next.delete(clave);
+      return next;
+    });
+    if (!resultado.ok) setErrorSoporte(resultado.error ?? "No se pudo actualizar la tarea.");
+  }
+
   const hoy = useMemo(() => new Date(), []);
   const mensajes = usuarioActual?.rol === "auxiliar" ? MENSAJES_AUXILIAR : MENSAJES_CONTADOR;
 
@@ -71,14 +88,19 @@ export default function ContadorDashboard() {
   const enRiesgo = conRiesgo.filter((r) => r === "rojo").length;
   const porRevisar = conRiesgo.filter((r) => r === "amber").length;
 
-  const misTareas = tareas.filter((t) => t.contadorId === usuarioActual?.id);
-  const tareasCompletadas = misTareas.filter((t) => t.estado === "completada");
+  // El contexto trae también las tareas del equipo si eres líder, así que
+  // acá se recortan a las que tienes asignadas tú.
+  const misTareas = useMemo(
+    () => tareas.filter((t) => t.asignadoA === String(usuarioActual?.dbId)),
+    [tareas, usuarioActual]
+  );
+  const tareasCompletadas = misTareas
+    .filter((t) => t.estado === "completada")
+    .sort((a, b) => (b.completadaEn ?? "").localeCompare(a.completadaEn ?? ""))
+    .slice(0, 8);
+  const hoyTexto = hoyISO();
 
-  function nombreCliente(clienteId: string) {
-    return clientes.find((c) => c.id === clienteId)?.nombre ?? misClientes.find((c) => c.id === clienteId)?.nombre ?? "Cliente";
-  }
-
-  // Obligaciones tributarias pendientes + tareas internas pendientes,
+  // Obligaciones tributarias pendientes + tareas asignadas por gerencia,
   // fusionadas en una sola lista ordenada por fecha — así no hay que mirar
   // dos pantallas distintas para saber qué toca hoy.
   const pendientes: ItemPendiente[] = useMemo(() => {
@@ -88,10 +110,9 @@ export default function ContadorDashboard() {
         .map((o) => ({ fecha: o.vencimiento, origen: "obligacion" as const, clienteNombre: c.nombre, clienteId: c.id, obligacionId: o.id, titulo: o.tipo }))
     );
     const deTareas: ItemPendiente[] = misTareas
-      .filter((t) => t.estado !== "completada")
-      .map((t) => ({ fecha: t.fechaLimite, origen: "tarea" as const, clienteNombre: nombreCliente(t.clienteId), titulo: t.titulo, tarea: t }));
+      .filter(estaAbierta)
+      .map((t) => ({ fecha: t.fechaLimite || SIN_FECHA, origen: "tarea" as const, clienteNombre: t.clienteNombre, clienteId: t.clienteId, titulo: t.titulo, tarea: t }));
     return [...deObligaciones, ...deTareas].sort((a, b) => a.fecha.localeCompare(b.fecha));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [misClientes, misTareas]);
 
   return (
@@ -142,21 +163,50 @@ export default function ContadorDashboard() {
           pendientes.map((item) => {
             if (item.origen === "tarea" && item.tarea) {
               const t = item.tarea;
+              const vencida = estaVencida(t, hoyTexto);
+              const ocupada = guardando.has(`t-${t.id}`);
               return (
                 <div
                   key={`t-${t.id}`}
-                  className="flex flex-col gap-3 rounded-lg border border-ink/10 bg-white/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                  className={`flex flex-col gap-3 rounded-lg border bg-white/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${
+                    vencida ? "border-folio-red/40" : "border-ink/10"
+                  }`}
                 >
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-magenta-deep">{item.clienteNombre}</p>
-                    <p className="mt-0.5 font-medium text-ink">{t.titulo}</p>
-                    <p className="mt-1 font-mono text-[11px] text-ash">Vence: {t.fechaLimite}</p>
+                    <p className="text-xs font-medium text-magenta-deep">
+                      <Link to={`/clientes/${t.clienteId}`} className="hover:underline">
+                        {item.clienteNombre}
+                      </Link>
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-medium text-ink">
+                      {t.titulo}
+                      <span className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${PRIORIDAD_INFO[t.prioridad].chip}`}>
+                        {PRIORIDAD_INFO[t.prioridad].label}
+                      </span>
+                    </p>
+                    {t.descripcion && <p className="mt-1 whitespace-pre-line text-xs text-ash">{t.descripcion}</p>}
+                    <p className={`mt-1 font-mono text-[11px] ${vencida ? "text-folio-red" : "text-ash"}`}>
+                      {t.fechaLimite
+                        ? `${formatoFechaCorta(t.fechaLimite)} · ${etiquetaTiempo(diasEntreFechas(hoy, t.fechaLimite))}`
+                        : "Sin fecha límite"}
+                      {t.creadoPorNombre && <span className="text-ash"> · Asignada por {t.creadoPorNombre}</span>}
+                      {t.estado === "en_progreso" && <span className="text-ash"> · {ESTADO_TAREA_LABEL.en_progreso}</span>}
+                    </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <Stamp estado={t.estado} />
+                  <div className="flex shrink-0 items-center gap-2">
+                    {t.estado === "pendiente" && (
+                      <button
+                        disabled={ocupada}
+                        onClick={() => cambiarEstadoTarea(t.id, "en_progreso")}
+                        className="rounded-md border border-ink/15 px-3 py-2 text-xs font-medium text-ink transition-colors hover:border-magenta/40 hover:text-magenta-deep disabled:opacity-60"
+                      >
+                        Empezar
+                      </button>
+                    )}
                     <button
+                      disabled={ocupada}
                       onClick={() => setTareaActiva(t)}
-                      className="rounded-md bg-ink px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-magenta"
+                      className="rounded-md bg-ink px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-magenta disabled:opacity-60"
                     >
                       Marcar hecha
                     </button>
@@ -202,21 +252,19 @@ export default function ContadorDashboard() {
 
       {tareasCompletadas.length > 0 && (
         <>
-          <p className="mb-2 mt-9 font-mono text-[11px] uppercase tracking-wider text-ash">Con soporte entregado</p>
+          <p className="mb-2 mt-9 font-mono text-[11px] uppercase tracking-wider text-ash">Tareas completadas recientemente</p>
           <div className="flex flex-col gap-2.5">
             {tareasCompletadas.map((t) => (
               <div
                 key={t.id}
-                className="flex flex-col gap-2 rounded-lg border border-folio-green/20 bg-folio-green/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5"
+                className="rounded-lg border border-folio-green/20 bg-folio-green/5 px-4 py-4 sm:px-5"
               >
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-ash">{nombreCliente(t.clienteId)}</p>
-                  <p className="mt-0.5 font-medium text-ink">{t.titulo}</p>
-                  <p className="mt-1 font-mono text-[11px] text-ash">
-                    Completada {t.completadaHora} · soporte: {t.evidenciaNombre}
-                  </p>
-                </div>
-                <Stamp estado="completada" />
+                <p className="text-xs font-medium text-ash">{t.clienteNombre}</p>
+                <p className="mt-0.5 font-medium text-ink">{t.titulo}</p>
+                <p className="mt-1 font-mono text-[11px] text-ash">
+                  Completada {t.completadaEn ? formatoFechaCorta(t.completadaEn.slice(0, 10)) : ""}
+                  {t.notaCierre && <span> · {t.notaCierre}</span>}
+                </p>
               </div>
             ))}
           </div>
@@ -231,12 +279,13 @@ export default function ContadorDashboard() {
       </Link>
 
       {tareaActiva && (
-        <EvidenciaModal
+        <CompletarTareaModal
           tarea={tareaActiva}
           onCerrar={() => setTareaActiva(null)}
-          onConfirmar={(archivo) => {
-            completarTarea(tareaActiva.id, archivo);
-            setTareaActiva(null);
+          onConfirmar={async (nota) => {
+            const resultado = await actualizarTarea(tareaActiva.id, { estado: "completada", notaCierre: nota });
+            if (resultado.ok) setTareaActiva(null);
+            return resultado;
           }}
         />
       )}

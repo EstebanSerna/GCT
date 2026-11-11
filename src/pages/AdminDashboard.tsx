@@ -1,9 +1,12 @@
+import { Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
+import { formatoNombre } from "../lib/texto";
 import { Stamp } from "../components/Stamp";
 import { MensajeDelDia } from "../components/MensajeDelDia";
 import { MENSAJES_GERENTE, mensajeDelDia } from "../data/mensajes";
 import type { Cliente } from "../data/seed";
 import { diasEntreFechas, etiquetaTiempo } from "../lib/obligaciones";
+import { estaAbierta, estaVencida, hoyISO } from "../lib/tareas";
 
 function proximaPendiente(c: Cliente) {
   return [...c.obligaciones]
@@ -21,8 +24,25 @@ function riesgoDe(c: Cliente, hoyDate: Date): "verde" | "amber" | "rojo" {
 }
 
 export default function AdminDashboard() {
-  const { clientes, tareas, usuarios } = useApp();
-  const contadores = usuarios.filter((u) => u.rol !== "gerente");
+  const { clientes, tareas } = useApp();
+
+  const hoyTexto = hoyISO();
+  const abiertas = tareas.filter(estaAbierta);
+  const vencidas = abiertas.filter((t) => estaVencida(t, hoyTexto));
+  const completadas = tareas.filter((t) => t.estado === "completada");
+  // Carga de trabajo: tareas abiertas por persona (las sin asignar quedan juntas).
+  const cargaPorPersona = Array.from(
+    abiertas
+      .reduce((mapa, t) => {
+        const clave = t.asignadoA ?? "sin-asignar";
+        const actual = mapa.get(clave) ?? { nombre: t.asignadoNombre ? formatoNombre(t.asignadoNombre) : "Sin asignar", abiertas: 0, vencidas: 0 };
+        actual.abiertas += 1;
+        if (estaVencida(t, hoyTexto)) actual.vencidas += 1;
+        return mapa.set(clave, actual);
+      }, new Map<string, { nombre: string; abiertas: number; vencidas: number }>())
+      .values()
+  ).sort((a, b) => b.vencidas - a.vencidas || b.abiertas - a.abiertas);
+  const maxAbiertas = Math.max(1, ...cargaPorPersona.map((p) => p.abiertas));
 
   const hoyDate = new Date();
   const conRiesgo = clientes.map((c) => ({ cliente: c, riesgo: riesgoDe(c, hoyDate) }));
@@ -93,39 +113,38 @@ export default function AdminDashboard() {
 
       {/* Carga de trabajo */}
       <section className="mt-10">
-        <h2 className="font-display text-lg font-semibold text-ink">Carga de trabajo del equipo</h2>
-        <p className="mt-1 text-sm text-ash">Tareas activas por contador/a, para repartir el trabajo a tiempo.</p>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-ink">Carga de trabajo del equipo</h2>
+            <p className="mt-1 text-sm text-ash">Tareas abiertas por persona, para repartir el trabajo a tiempo.</p>
+          </div>
+          <Link to="/tareas" className="font-mono text-xs uppercase tracking-wide text-magenta-deep underline underline-offset-4">
+            Asignar y auditar tareas →
+          </Link>
+        </div>
         <div className="mt-4 flex flex-col gap-2.5">
-          {contadores.length === 0 && (
+          {cargaPorPersona.length === 0 && (
             <p className="rounded-lg border border-dashed border-ash-light px-5 py-6 text-center text-sm text-ash">
-              Todavía no hay tareas de ejemplo asignadas al equipo.
+              No hay tareas abiertas. Cuando asignes tareas al equipo, aquí verás cómo va la carga de cada quien.
             </p>
           )}
-          {contadores.map((u) => {
-            const suyas = tareas.filter((t) => t.contadorId === u.id);
-            const pendientes = suyas.filter((t) => t.estado !== "completada").length;
-            const total = suyas.length || 1;
-            const pct = Math.round((pendientes / total) * 100);
-            return (
-              <div key={u.id} className="rounded-lg border border-ink/10 bg-white/60 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
-                  <span className="font-medium text-ink">
-                    {u.nombre}{" "}
-                    <span className="font-mono text-[10px] uppercase tracking-wide text-ash">
-                      · {u.rol === "contador" ? "Contador/a" : "Auxiliar"}
-                    </span>
-                  </span>
-                  <span className="shrink-0 font-mono text-xs text-ash">{pendientes} pendientes de {suyas.length}</span>
-                </div>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-ink/10">
-                  <div
-                    className={`h-full rounded-full ${pct > 60 ? "bg-folio-red" : pct > 30 ? "bg-folio-amber" : "bg-folio-green"}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
+          {cargaPorPersona.map((p) => (
+            <div key={p.nombre} className="rounded-lg border border-ink/10 bg-white/60 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
+                <span className="font-medium text-ink">{p.nombre}</span>
+                <span className="shrink-0 font-mono text-xs text-ash">
+                  {p.abiertas} abierta{p.abiertas === 1 ? "" : "s"}
+                  {p.vencidas > 0 && <span className="text-folio-red"> · {p.vencidas} vencida{p.vencidas === 1 ? "" : "s"}</span>}
+                </span>
               </div>
-            );
-          })}
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-ink/10">
+                <div
+                  className={`h-full rounded-full ${p.vencidas > 0 ? "bg-folio-red" : "bg-folio-green"}`}
+                  style={{ width: `${Math.round((p.abiertas / maxAbiertas) * 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -135,10 +154,10 @@ export default function AdminDashboard() {
         <p className="mt-1 text-sm text-ash">Se envía automáticamente al cierre del día.</p>
         <div className="mt-4 max-w-sm rounded-2xl rounded-tl-sm bg-[#DCF8C6] p-4 font-body text-[13px] leading-relaxed text-ink shadow-sm">
           <p className="font-semibold">📋 Resumen del día — {hoy}</p>
-          <p className="mt-2">
-            ✅ {tareas.filter((t) => t.estado === "completada").length} tareas completadas con soporte
+          <p className="mt-2">✅ {completadas.length} tareas completadas</p>
+          <p>
+            ⏳ {abiertas.length} tareas siguen abiertas ({vencidas.length} vencidas)
           </p>
-          <p>⏳ {tareas.filter((t) => t.estado !== "completada").length} tareas siguen pendientes</p>
           <p className="mt-2">🔴 {rojos.length} clientes en riesgo: {rojos.map((r) => r.cliente.nombre).join(", ") || "ninguno"}</p>
           <p className="mt-2 text-[11px] text-ink/50">Enviado por el portal · {new Date().toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" })}</p>
         </div>

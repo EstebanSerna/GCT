@@ -62,6 +62,57 @@ export interface ApiObligacion {
   documentos: ApiDocumento[];
 }
 
+export type EstadoTarea = "pendiente" | "en_progreso" | "completada" | "cancelada";
+export type PrioridadTarea = "baja" | "normal" | "alta" | "urgente";
+
+export interface ApiTarea {
+  id: string;
+  clienteId: string;
+  clienteNombre: string;
+  titulo: string;
+  descripcion: string;
+  asignadoA: string | null;
+  asignadoNombre: string | null;
+  creadoPor: string | null;
+  creadoPorNombre: string | null;
+  prioridad: PrioridadTarea;
+  fechaLimite: string; // ISO yyyy-mm-dd, "" si no tiene
+  estado: EstadoTarea;
+  notaCierre: string;
+  completadaEn: string | null;
+  creadaEn: string;
+  actualizadaEn: string;
+  /** El servidor ya calculó si esta cuenta puede editar/reasignar/cancelar esta tarea. */
+  puedeGestionar: boolean;
+}
+
+export interface ApiTareaEvento {
+  id: string;
+  accion: string;
+  detalle: string;
+  empleadoNombre: string | null;
+  creadoEn: string;
+}
+
+export interface NuevaTarea {
+  clienteId: string;
+  titulo: string;
+  descripcion?: string;
+  asignadoA: number;
+  prioridad: PrioridadTarea;
+  fechaLimite?: string;
+}
+
+export type CambiosTarea = Partial<{
+  titulo: string;
+  descripcion: string;
+  asignadoA: number;
+  prioridad: PrioridadTarea;
+  fechaLimite: string | null;
+  estado: EstadoTarea;
+  notaCierre: string;
+}>;
+
 export interface ApiCliente {
   id: string;
   nombre: string;
@@ -238,6 +289,23 @@ export const api = {
     formData.append("estado", estado);
     formData.append("archivo", archivo);
     return requestFormData<{ obligacion: ApiObligacion }>(`/api/obligaciones/${obligacionId}/soporte`, formData);
+  },
+
+  /** Gerencia/super admin: todas. Líder de equipo: las suyas y las de su equipo. Resto: las asignadas a esa persona. */
+  tareas() {
+    return request<{ tareas: ApiTarea[] }>("/api/tareas");
+  },
+
+  crearTarea(input: NuevaTarea) {
+    return request<{ tarea: ApiTarea }>("/api/tareas", { method: "POST", body: JSON.stringify(input) });
+  },
+
+  actualizarTarea(id: string, cambios: CambiosTarea) {
+    return request<{ tarea: ApiTarea }>(`/api/tareas/${id}`, { method: "PATCH", body: JSON.stringify(cambios) });
+  },
+
+  historialTarea(id: string) {
+    return request<{ eventos: ApiTareaEvento[] }>(`/api/tareas/${id}/historial`);
   },
 
   /** URL firmada temporal (5 min) para descargar un documento ya subido. */

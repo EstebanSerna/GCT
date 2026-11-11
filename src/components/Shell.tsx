@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, Fingerprint, ShieldCheck, CalendarDays, Users, Eye } from "lucide-react";
+import { Menu, X, Fingerprint, ShieldCheck, CalendarDays, Users, Eye, ListChecks } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import logo from "../assets/logo-mark.png";
 import { RingMark } from "./Stamp";
@@ -81,6 +81,15 @@ export function Shell({ children }: { children: ReactNode }) {
           className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
         >
           <RingMark /> Mis tareas
+        </NavLink>
+      )}
+      {(esGerenteOMas || esLiderEquipo) && (
+        <NavLink
+          to="/tareas"
+          onClick={() => setMenuAbierto(false)}
+          className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+        >
+          <ListChecks size={14} /> {esGerenteOMas ? "Tareas del equipo" : "Asignar tareas"}
         </NavLink>
       )}
       {esSuperAdmin && (

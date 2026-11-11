@@ -60,23 +60,9 @@ export interface Cliente {
   obligaciones: Obligacion[];
 }
 
-export interface Tarea {
-  id: string;
-  clienteId: string;
-  contadorId: string;
-  titulo: string;
-  fechaLimite: string;
-  estado: "pendiente" | "en_progreso" | "completada";
-  evidenciaNombre?: string;
-  evidenciaUrl?: string;
-  completadaHora?: string;
-}
-
-// Los datos de ejemplo (clientes, tareas y usuarios ficticios) se
-// eliminaron — el portal ahora usa cuentas y datos reales. Estos arreglos
-// se dejan vacíos (en vez de borrar el tipo/las páginas que los usan) para
-// que "Clientes" y los paneles de tareas sigan funcionando normalmente,
-// mostrando su estado vacío, hasta que se conecten a datos reales.
+// Los datos de ejemplo (clientes y usuarios ficticios) se eliminaron — el
+// portal ahora usa cuentas y datos reales. Estos arreglos se dejan vacíos
+// (en vez de borrar el tipo/las páginas que los usan) para que las pantallas
+// sigan funcionando normalmente, mostrando su estado vacío.
 export const usuarios: Usuario[] = [];
 export const clientesSeed: Cliente[] = [];
-export const tareasSeed: Tarea[] = [];

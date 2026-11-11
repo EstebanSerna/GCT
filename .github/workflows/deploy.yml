@@ -56,8 +56,14 @@ jobs:
             exit 1
           fi
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          # Al pegar desde Windows la llave puede traer saltos de línea CRLF,
+          # que OpenSSH en Linux rechaza: se quitan antes de guardarla.
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          if ! KEYERR=$(ssh-keygen -y -f ~/.ssh/deploy_key 2>&1 >/dev/null); then
+            echo "::error::La llave SSH guardada en el secreto no es válida: $(echo "$KEYERR" | tr '\n' ' ' | cut -c1-200)"
+            exit 1
+          fi
           ssh-keyscan -t ed25519 "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null
           ACTUAL=$(ssh-keygen -lf ~/.ssh/known_hosts | awk '{print $2}')
           if [ "$ACTUAL" != "$SSH_HOST_FINGERPRINT" ]; then
@@ -69,6 +75,12 @@ jobs:
         run: |
           SSH="ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o ServerAliveInterval=30 -o ConnectTimeout=30"
           OPTS="-rlz --omit-dir-times --chmod=D755,F644 -e"
+          # Prueba corta antes de subir: si falla, el motivo exacto queda
+          # visible en el resumen del error (no contiene secretos).
+          if ! PRUEBA=$($SSH "$SSH_USER@$SSH_HOST" "echo conectado" 2>&1); then
+            echo "::error::No se pudo entrar por SSH: $(echo "$PRUEBA" | tr '\n' ' ' | cut -c1-300)"
+            exit 1
+          fi
           # 1) Primero los archivos con nombre único (assets), para que el
           #    sitio nunca apunte a archivos que todavía no existen.
           rsync $OPTS "$SSH" dist/assets/ "$SSH_USER@$SSH_HOST:public_html/assets/"
